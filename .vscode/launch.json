@@ -17,8 +17,8 @@
     //     另一道题目）。
     //   - lldb-mi 不支持 gdb 那种 "args": ["<", "文件"] 的 stdin 重定向语法（会
     //     被当成普通参数传给程序而非重定向 stdin，导致程序卡住等待真实终端输
-    //     入）。macOS 配置改用 "process launch -i" 手动重定向，未在真实 macOS
-    //     环境验证，如遇问题请改用命令行 `scripts/debug.sh` 调试。
+    //     入）。macOS 配置改用 lldb 的 "target.input-path" 设置重定向，未在真实
+    //     macOS 环境验证，如遇问题请改用命令行 `scripts/debug.sh` 调试。
     //
     // 已提供两组配置：
     //   - "Debug (Linux/WSL - gdb)"：在 WSL/Linux 下使用 gdb
@@ -58,16 +58,21 @@
             "preLaunchTask": "编译当前题目（调试符号）",
             // lldb-mi 不支持 gdb 那种 "args": ["<", "文件"] 的 stdin 重定向语法
             // （会被当成普通命令行参数传给程序，而不是重定向 stdin，导致程序卡在
-            // 等待真实终端输入）。这里改用 lldb 原生的 "process launch -i <文件>"
-            // 命令手动重定向，并跳过默认的 -exec-run。
-            "customLaunchSetupCommands": [
+            // 等待真实终端输入）。这里改用 lldb 原生的 "target.input-path" 设置
+            // 重定向 stdin。
+            //
+            // 注意：不要改用 "customLaunchSetupCommands" 来做这件事——它会完全
+            // 替换默认的启动流程，在 Apple Silicon (ARM) Mac 上会触发 cpptools
+            // 的已知 bug，导致 "Specified argument was out of the range of
+            // valid values. Parameter name: arch" 报错，直接无法进入调试。
+            // 参考: https://github.com/microsoft/vscode-cpptools/issues/7488
+            "setupCommands": [
                 {
-                    "text": "-interpreter-exec console \"process launch -i ${fileDirname}/tests/1.in\"",
-                    "description": "以 tests/1.in 重定向 stdin 启动",
+                    "text": "-interpreter-exec console \"settings set target.input-path ${fileDirname}/tests/1.in\"",
+                    "description": "以 tests/1.in 重定向 stdin",
                     "ignoreFailures": false
                 }
-            ],
-            "launchCompleteCommand": "None"
+            ]
         }
     ]
 }
