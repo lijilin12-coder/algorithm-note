@@ -3,15 +3,22 @@
     //
     // 使用方法:
     //   1. 打开你要调试的题目的 solution.cpp，确保它是当前激活的编辑器标签页
-    //      （下方 "program"/"args" 用 ${fileDirname} 自动取该文件所在的题目
-    //      文件夹，无需手动修改路径）
-    //   2. 如需调试非默认的测试用例（默认是 tests/1.in），手动把 "args" 中的
-    //      "tests/1.in" 改成目标用例文件名
+    //      （下方 "program"/"args"/"customLaunchSetupCommands" 用
+    //      ${fileDirname} 自动取该文件所在的题目文件夹，无需手动修改路径）
+    //   2. 如需调试非默认的测试用例（默认是 tests/1.in）：
+    //      - gdb 配置：手动把 "args" 中的 "tests/1.in" 改成目标用例文件名
+    //      - lldb 配置：手动把 "customLaunchSetupCommands" 里命令中的
+    //        "tests/1.in" 改成目标用例文件名
     //   3. 在代码中设置断点，按 F5 启动调试
     //
-    // 已知限制：启动调试时必须保证当前激活的编辑器标签页就是目标题目的
-    // solution.cpp，否则 ${fileDirname} 会指向错误的题目文件夹（编译/调试会失败
-    // 或对应到另一道题目）。
+    // 已知限制：
+    //   - 启动调试时必须保证当前激活的编辑器标签页就是目标题目的 solution.cpp，
+    //     否则 ${fileDirname} 会指向错误的题目文件夹（编译/调试会失败或对应到
+    //     另一道题目）。
+    //   - lldb-mi 不支持 gdb 那种 "args": ["<", "文件"] 的 stdin 重定向语法（会
+    //     被当成普通参数传给程序而非重定向 stdin，导致程序卡住等待真实终端输
+    //     入）。macOS 配置改用 "process launch -i" 手动重定向，未在真实 macOS
+    //     环境验证，如遇问题请改用命令行 `scripts/debug.sh` 调试。
     //
     // 已提供两组配置：
     //   - "Debug (Linux/WSL - gdb)"：在 WSL/Linux 下使用 gdb
@@ -43,13 +50,24 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/solution_debug",
-            "args": ["<", "${fileDirname}/tests/1.in"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb",
-            "preLaunchTask": "编译当前题目（调试符号）"
+            "preLaunchTask": "编译当前题目（调试符号）",
+            // lldb-mi 不支持 gdb 那种 "args": ["<", "文件"] 的 stdin 重定向语法
+            // （会被当成普通命令行参数传给程序，而不是重定向 stdin，导致程序卡在
+            // 等待真实终端输入）。这里改用 lldb 原生的 "process launch -i <文件>"
+            // 命令手动重定向，并跳过默认的 -exec-run。
+            "customLaunchSetupCommands": [
+                {
+                    "text": "-interpreter-exec console \"process launch -i ${fileDirname}/tests/1.in\"",
+                    "description": "以 tests/1.in 重定向 stdin 启动",
+                    "ignoreFailures": false
+                }
+            ],
+            "launchCompleteCommand": "None"
         }
     ]
 }
