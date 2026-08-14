@@ -143,7 +143,11 @@ if [[ -f "$target_dir/solution.cpp" ]]; then
 fi
 
 # 批量模式：递归发现所有包含 solution.cpp 的子目录，按路径排序依次运行。
-mapfile -t problem_solutions < <(find "$target_dir" -type f -name solution.cpp | sort)
+# 用 while read 而非 mapfile 读取，兼容 macOS 自带的 Bash 3.2（无 mapfile 内建命令）。
+problem_solutions=()
+while IFS= read -r solution_path; do
+    problem_solutions+=("$solution_path")
+done < <(find "$target_dir" -type f -name solution.cpp | sort)
 
 if [[ ${#problem_solutions[@]} -eq 0 ]]; then
     echo "错误: $target_dir 下没有找到任何题目（solution.cpp）" >&2
