@@ -2,20 +2,22 @@
 #include "linked_list.h"
 
 int main() {
-    LinkedList<int> list;
+    Node* head = list_create();
     int number;
     while (std::cin >> number) {
         if (number == -1) {
             break;
         }
-        list.push_back(number);
+        list_push_back(head, number);
     }
 
     long long sum = 0;
-    for (auto* node = list.head(); node != nullptr; node = node->next) {
-        sum += node->value;
+    for (Node* p = head->next; p != nullptr; p = p->next) {
+        sum += p->value;
     }
 
     std::cout << sum << std::endl;
+
+    list_free(head);
     return 0;
 }
