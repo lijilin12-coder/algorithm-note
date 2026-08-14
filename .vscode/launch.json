@@ -1,0 +1,55 @@
+{
+    // 蓝桥杯刷题本地平台 - 调试配置
+    //
+    // 使用方法:
+    //   1. 打开你要调试的题目的 solution.cpp，确保它是当前激活的编辑器标签页
+    //      （下方 "program"/"args" 用 ${fileDirname} 自动取该文件所在的题目
+    //      文件夹，无需手动修改路径）
+    //   2. 如需调试非默认的测试用例（默认是 tests/1.in），手动把 "args" 中的
+    //      "tests/1.in" 改成目标用例文件名
+    //   3. 在代码中设置断点，按 F5 启动调试
+    //
+    // 已知限制：启动调试时必须保证当前激活的编辑器标签页就是目标题目的
+    // solution.cpp，否则 ${fileDirname} 会指向错误的题目文件夹（编译/调试会失败
+    // 或对应到另一道题目）。
+    //
+    // 已提供两组配置：
+    //   - "Debug (Linux/WSL - gdb)"：在 WSL/Linux 下使用 gdb
+    //   - "Debug (macOS - lldb)"：在 macOS 下使用 lldb
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug (Linux/WSL - gdb)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${fileDirname}/solution_debug",
+            "args": ["<", "${fileDirname}/tests/1.in"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "编译当前题目（调试符号）",
+            "setupCommands": [
+                {
+                    "description": "为 gdb 启用整齐打印",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Debug (macOS - lldb)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${fileDirname}/solution_debug",
+            "args": ["<", "${fileDirname}/tests/1.in"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "编译当前题目（调试符号）"
+        }
+    ]
+}

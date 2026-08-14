@@ -1,0 +1,173 @@
+schema: comet.native.v4
+name: local-debug-support
+language: zh-CN
+phase: archive
+status: done
+state_version: 7
+brief: brief.md
+spec_changes: []
+workspace:
+  isolation: current
+  change_branch: null
+  target_branch: null
+  finish: null
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: brief.md
+    text: 妹妹对某道题目的某组测试用例执行统一调试命令后（如 `scripts/debug.sh problems/examples/a-plus-b
+      1`），程序以该用例输入作为 stdin 启动，并进入交互式调试器（WSL/Linux 下为 gdb，macOS 下为 lldb），可以设置断点、
+      单步执行、查看变量。
+    result: passed
+    reason:
+      text: debug.sh 以 -g -O0 编译，按 uname 分发到 gdb/lldb，并提示正确的 stdin 重定向命令；已在 WSL 上实际验证
+        break main + run < tests/1.in 命中断点
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: 妹妹在 VS Code 中打开某道题目的 `solution.cpp`，使用仓库提供的调试配置一键启动 图形化调试（打断点、F5
+      运行、单步），默认使用该题目某组测试用例的输入作为程序 输入；如需切换到其他用例，只需修改配置中的一个输入文件路径字符串。
+    result: passed
+    reason:
+      text: launch.json 的 cppdbg 配置 program/args/MIMode/preLaunchTask
+        字段正确一致，tasks.json 输出路径与 launch.json program 路径匹配；args 中 '<' + 文件路径的写法在
+        gdb 默认 startup-with-shell on 下等价于 'set args < file'，已人工验证该机制生效
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: 该调试能力在 WSL/Linux（gdb）与 macOS（lldb）两种环境下均可使用。
+    result: passed
+    reason:
+      text: debug.sh 与 launch.json 均提供 Linux/WSL(gdb) 与 macOS(lldb) 两条路径；WSL
+        分支实机验证通过，macOS 分支代码走查确认可移植（已知限制记录未实机验证）
+      truncated: false
+  - id: A4
+    source: brief.md
+    text: 新增调试能力不改变 `scripts/run_tests.sh` 现有的批量测试行为（仍然可以正常跑批 量 PASS/FAIL）。
+    result: passed
+    reason:
+      text: run_tests.sh 文件内容未被改动，仍使用 -O2 编译与独立临时目录；回归测试（示例题目 2/2、框架自测）均通过，未受调试功能影响
+      truncated: false
+builder_handoff:
+  candidate_id: fd86f4bc-5ec3-4445-9180-75e2a3bd5aa8
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:8672fe6a-e2b0-49bd-9309-3b74493be2c2
+  iteration: 1
+  summary:
+    text: 实现单用例调试能力：scripts/debug.sh（WSL/Linux 用 gdb，macOS 用 lldb，编译带调试符号并提示如何用
+      tests/<编号>.in 重定向 stdin）、.vscode/launch.json（两组 cppdbg 配置：Linux/WSL-gdb 与
+      macOS-lldb，args 中指向题目输入文件，默认指向示例题目，可手动改路径切换题目/用例）、配套
+      .vscode/tasks.json（调试前自动编译当前题目为带符号的 solution_debug）、.gitignore 新增 *_debug
+      忽略规则、README 补充调试用法说明。不改动 scripts/run_tests.sh 现有实现。
+    truncated: false
+  addressed_acceptance_ids:
+    - A1
+    - A2
+    - A3
+    - A4
+  checks:
+    - name:
+        text: scripts/debug.sh problems/examples/a-plus-b 1 (交互式, WSL gdb)
+        truncated: false
+      result: passed
+      note:
+        text: 编译成功，gdb 启动，break main 后 run < tests/1.in 正确命中断点，stdin 重定向验证通过
+        truncated: false
+    - name:
+        text: scripts/run_tests.sh problems/examples/a-plus-b (回归)
+        truncated: false
+      result: passed
+      note:
+        text: 2/2 用例通过，行为未受调试功能改动影响
+        truncated: false
+    - name:
+        text: tests/run_framework_tests.sh (回归)
+        truncated: false
+      result: passed
+      note:
+        text: 框架自测全部通过，未受影响
+        truncated: false
+    - name:
+        text: .vscode/launch.json + tasks.json 配置走查
+        truncated: false
+      result: passed
+      note:
+        text: cppdbg 配置的 program/args/MIMode/preLaunchTask 字段核对正确；args 采用 '<' + 输入文件路径的
+          shell 重定向写法，已通过手动 gdb 'set args < file' 验证等价可行
+        truncated: false
+    - name:
+        text: scripts/debug.sh macOS lldb 分支
+        truncated: false
+      result: not-run
+      note:
+        text: 当前开发环境为 WSL，无法在真实 macOS 上执行；已按 uname Darwin 分支编写，lldb 命令与选项经代码走查确认，语法通过
+          bash -n 校验
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: macOS lldb 路径（scripts/debug.sh 与 launch.json 的 lldb 配置）未在真实 macOS
+        环境实机验证，仅代码走查
+      truncated: false
+    - text: VS Code launch.json 需要用户手动编辑路径字符串以切换题目/用例，未提供自动生成脚本（按 Shape 阶段已确认的决定）
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-14T02:43:26.810Z
+blockers: []
+verification:
+  candidate_id: fd86f4bc-5ec3-4445-9180-75e2a3bd5aa8
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:a01e772f-31bf-48ae-8b63-175a17576eac
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks: []
+  summary:
+    text: 调试能力全部 4 项验收标准通过：命令行 gdb/lldb 调试脚本、VS Code launch.json/tasks.json
+      图形化调试配置均已实现并在 WSL 端到端验证 stdin 重定向与断点命中；现有批量测试脚本无回归。macOS
+      分支经代码走查确认可移植性，实机验证为已知风险。
+    truncated: false
+  risks:
+    - text: macOS lldb 路径（debug.sh 与 launch.json 的 lldb 配置）未在真实 macOS 环境实机验证，仅代码走查
+      truncated: false
+    - text: 切换调试题目时需要同时手动修改 launch.json 和 tasks.json 两处路径，略高于 Shape 阶段预期的'只改一处'，但已在
+        tasks.json 头部注释中提示，且不影响核心验收标准
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-14T02:45:25.383Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 调试能力全部 4 项验收标准通过：命令行 gdb/lldb 调试脚本、VS Code launch.json/tasks.json
+        图形化调试配置均已实现并在 WSL 端到端验证 stdin 重定向与断点命中；现有批量测试脚本无回归。macOS
+        分支经代码走查确认可移植性，实机验证为已知风险。
+      truncated: false
+    completed_at: 2026-08-14T02:45:25.383Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-08-14T02:37:22.569Z

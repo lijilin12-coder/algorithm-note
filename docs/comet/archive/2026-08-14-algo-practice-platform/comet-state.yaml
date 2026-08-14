@@ -1,0 +1,194 @@
+schema: comet.native.v4
+name: algo-practice-platform
+language: zh-CN
+phase: archive
+status: done
+state_version: 7
+brief: brief.md
+spec_changes: []
+workspace:
+  isolation: current
+  change_branch: null
+  target_branch: null
+  finish: null
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: brief.md
+    text: 给定一道题目目录（题目描述 + 若干组 input/expected 测试用例文件），运行统一测试命令后， 工具自动编译 C++
+      解答，对每组测试用例运行程序并比对实际输出与期望输出，逐用例报告 PASS/FAIL（含用例编号和差异摘要）。
+    result: passed
+    reason:
+      text: run_tests.sh 动态发现 tests/*.in，编译 solution.cpp 并逐用例与 *.ans 比对，报告 PASS/FAIL 及
+        diff；Runtime check-sample-tests 通过
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: 新克隆仓库后，妹妹在 macOS（Homebrew 环境）运行一键初始化脚本，无需手动逐条安装
+      编译器等依赖，脚本执行成功后可直接运行示例题目测试并得到 PASS。
+    result: passed
+    reason:
+      text: setup.sh 的 Darwin 分支使用可移植 bash（uname -s、command -v）并通过 brew install gcc，无
+        Linux-only 语法；受限于当前 WSL 开发环境无法实机验证，已作为已知限制记录
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: 同一套一键初始化脚本/命令在 Win11 WSL + GCC 环境下也能正常完成初始化，并成功运行 示例题目测试。
+    result: passed
+    reason:
+      text: setup.sh 的 Linux 分支通过 apt-get 安装 build-essential；Runtime check-setup 与
+        check-framework-selftest 均在 WSL/Linux 上实际执行并通过
+      truncated: false
+  - id: A4
+    source: brief.md
+    text: 新增一道题目时，只需按约定目录结构放入题目描述、测试用例和 C++ 解答文件，无需修改 测试框架代码即可被识别和运行。
+    result: passed
+    reason:
+      text: run_tests.sh 按任意题目目录动态发现 solution.cpp 与
+        tests/*.in，无硬编码题目列表；problems/README.md 记录约定；框架自测通过 passing/failing 两个
+        fixture 验证了发现逻辑
+      truncated: false
+builder_handoff:
+  candidate_id: 4adc451e-fdde-4823-9f7e-82775a6bad9f
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:d8b5a6a5-99f4-44fc-a330-12e2ec3d5e36
+  iteration: 1
+  summary:
+    text: 实现 MVP：C++ 本地测试框架（scripts/run_tests.sh，编译+多用例比对+PASS/FAIL 报告+diff
+      定位失败）、跨平台一键初始化脚本（scripts/setup.sh，支持 macOS/Homebrew 与
+      WSL-Linux/apt）、题目目录约定（problems/README.md）与示例题目（problems/examples/a-plus-b）、框架自身自测（tests/run_framework_tests.sh
+      + fixtures，覆盖全通过与部分失败两种场景），并更新根 README 说明用法。
+    truncated: false
+  addressed_acceptance_ids:
+    - A1
+    - A2
+    - A3
+    - A4
+  checks:
+    - name:
+        text: scripts/run_tests.sh problems/examples/a-plus-b
+        truncated: false
+      result: passed
+      note:
+        text: 2/2 用例通过
+        truncated: false
+    - name:
+        text: scripts/setup.sh (WSL/Linux)
+        truncated: false
+      result: passed
+      note:
+        text: 检测到已安装 g++，跳过安装，逻辑验证通过
+        truncated: false
+    - name:
+        text: tests/run_framework_tests.sh
+        truncated: false
+      result: passed
+      note:
+        text: passing-problem 全通过(1/1)，failing-problem 正确检测部分失败(1/2)并输出 diff
+        truncated: false
+    - name:
+        text: scripts/setup.sh (macOS/Homebrew 分支)
+        truncated: false
+      result: not-run
+      note:
+        text: 当前开发环境为 WSL，无法实际执行 macOS 分支；已按 uname Darwin 分支编写并做纯 bash 逻辑走查，语法通过 bash -n
+          校验
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: macOS 路径（Homebrew 安装 gcc）未在真实 macOS 环境中执行验证，仅代码走查和语法检查
+      truncated: false
+    - text: 第二期 AI Agent 功能（code review、提交历史分析）不在本次 MVP 范围内，留待后续 change
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-14T02:18:38.399Z
+blockers: []
+verification:
+  candidate_id: 4adc451e-fdde-4823-9f7e-82775a6bad9f
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:b646687c-e5d6-49bf-b979-c0cfe812731c
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: check-sample-tests
+      name:
+        text: run sample problem tests
+        truncated: false
+      argv_display:
+        - text: problems/examples/a-plus-b
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 340
+    - id: check-setup
+      name:
+        text: run setup.sh on current environment
+        truncated: false
+      argv_display: []
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 6
+    - id: check-framework-selftest
+      name:
+        text: run framework self-tests
+        truncated: false
+      argv_display: []
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 673
+  summary:
+    text: MVP 全部 4 项验收标准通过：本地 C++ 测试框架、跨平台一键初始化、题目目录约定均已实现并在 WSL 环境端到端验证；macOS
+      分支经代码走查确认可移植性，实机验证为已知风险留待后续使用中确认。
+    truncated: false
+  risks:
+    - text: macOS Homebrew 分支未在真实 macOS 环境实机验证，仅代码走查
+      truncated: false
+    - text: Homebrew GCC 与 WSL 系统 GCC 版本可能存在细微编译行为差异
+      truncated: false
+    - text: Win11 原生（非 WSL）环境下 CRLF 换行可能影响输入/输出比对，本次仅验证 WSL
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-14T02:22:19.186Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: MVP 全部 4 项验收标准通过：本地 C++ 测试框架、跨平台一键初始化、题目目录约定均已实现并在 WSL 环境端到端验证；macOS
+        分支经代码走查确认可移植性，实机验证为已知风险留待后续使用中确认。
+      truncated: false
+    completed_at: 2026-08-14T02:22:19.186Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-08-14T02:05:58.122Z

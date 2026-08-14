@@ -39,6 +39,9 @@
 *.out
 *.app
 
+# Debug build artifacts (scripts/debug.sh, .vscode/launch.json)
+*_debug
+
 # Build directories
 build/
 Build/
@@ -67,3 +70,20 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# OS junk files
+.DS_Store
+Thumbs.db
+
+# Editor swap/backup files
+*.swo
+*~
+
+# >>> Comet managed project state >>>
+!/.comet/
+/.comet/*
+!/.comet/config.yaml
+# <<< Comet managed project state <<<
+
+# Claude Code local-only settings (machine-specific paths, not shared)
+.claude/settings.local.json

@@ -1,0 +1,29 @@
+{
+    // 配合 launch.json 使用：调试前自动以调试符号编译当前题目。
+    // ${fileDirname} 自动取当前激活编辑器文件所在的题目文件夹，切换题目时无需修改
+    // 本文件；但要求启动调试时当前激活的编辑器标签页就是目标题目的 solution.cpp。
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "编译当前题目（调试符号）",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-g",
+                "-O0",
+                "-std=c++17",
+                "-Wall",
+                "-I",
+                "${workspaceFolder}/common",
+                "-o",
+                "${fileDirname}/solution_debug",
+                "${fileDirname}/solution.cpp"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gcc"]
+        }
+    ]
+}

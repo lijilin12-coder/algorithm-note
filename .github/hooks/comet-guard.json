@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "matcher": "create|edit|str_replace_editor|apply_patch",
+        "bash": "node \"/home/sml/code/algorithm-note/.github/skills/comet/scripts/comet-hook-router.mjs\" --platform \"github-copilot\" --project-root \"/home/sml/code/algorithm-note\"",
+        "powershell": "node \"/home/sml/code/algorithm-note/.github/skills/comet/scripts/comet-hook-router.mjs\" --platform \"github-copilot\" --project-root \"/home/sml/code/algorithm-note\""
+      }
+    ]
+  }
+}
