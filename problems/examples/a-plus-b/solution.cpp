@@ -1,8 +1,6 @@
-#include <iostream>
+#include <stdio.h>
 
-int main() {
-    long long a, b;
-    std::cin >> a >> b;
-    std::cout << a + b << std::endl;
+int main(int argc, char const *argv[])
+{
     return 0;
 }

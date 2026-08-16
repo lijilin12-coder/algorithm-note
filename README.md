@@ -25,7 +25,8 @@ Algorithms-node is a personal note project that notes down the common algorithms
 
 `scripts/run_tests.sh` 传入的目录如果本身不是题目目录（不直接包含
 `solution.cpp`），会自动按批量模式运行：递归发现该目录下所有题目（不限层级），
-按路径排序依次编译并测试，任意一个题目失败即停止。
+按路径排序依次编译并测试，某个题目失败时跳过并继续运行后续题目，最后汇总输出所有
+失败的题目。
 
 ```bash
 scripts/run_tests.sh problems/examples   # 运行 examples 分类下所有题目
