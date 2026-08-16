@@ -7,7 +7,8 @@
 # <题目目录> 直接包含 solution.cpp 时，按单题目模式运行。
 # <题目目录> 不直接包含 solution.cpp 时，按批量模式运行：递归扫描该目录下所有
 # 同时包含 solution.cpp 与 tests/ 的子目录（不限层级），按路径排序依次运行；
-# 任意一个题目失败时立即停止，不再运行后续题目。
+# 某个题目失败（编译失败或有用例 FAIL）时跳过该题目，继续运行后续题目，最后
+# 汇总输出所有失败的题目；只要有题目失败，脚本整体以非 0 状态退出。
 #
 # 示例:
 #   scripts/run_tests.sh problems/examples/a-plus-b   # 单题目
@@ -156,6 +157,7 @@ fi
 
 problem_count=${#problem_solutions[@]}
 ran_count=0
+failed_problems=()
 
 for solution_path in "${problem_solutions[@]}"; do
     problem_dir=$(dirname "$solution_path")
@@ -164,12 +166,19 @@ for solution_path in "${problem_solutions[@]}"; do
     run_one_problem "$problem_dir"
     status=$?
     if [[ $status -ne 0 ]]; then
-        echo "" >&2
-        echo "批量测试在题目 $problem_dir 处失败（已运行 $ran_count/$problem_count 个题目），停止。" >&2
-        exit "$status"
+        echo "题目 $problem_dir 失败，跳过并继续运行后续题目。" >&2
+        failed_problems+=("$problem_dir")
     fi
     echo ""
 done
+
+if [[ ${#failed_problems[@]} -gt 0 ]]; then
+    echo "批量测试结果: 共运行 $problem_count 个题目，${#failed_problems[@]} 个失败："
+    for failed_dir in "${failed_problems[@]}"; do
+        echo "  - $failed_dir"
+    done
+    exit 1
+fi
 
 echo "批量测试结果: 共运行 $problem_count 个题目，全部通过"
 exit 0
