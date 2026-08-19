@@ -53,6 +53,18 @@ if ! command -v "$CXX" >/dev/null 2>&1; then
     exit 2
 fi
 
+print_block() {
+    local title="$1"
+    local file_path="$2"
+
+    echo "    $title:"
+    if [[ -s "$file_path" ]]; then
+        sed 's/^/      /' "$file_path"
+    else
+        echo "      <空>"
+    fi
+}
+
 # 编译并运行单个题目目录的全部测试用例，输出逐用例 PASS/FAIL。
 # 成功（全部用例通过）返回 0，用例 FAIL 返回 1，环境/参数错误返回 2。
 run_one_problem() {
@@ -117,8 +129,8 @@ run_one_problem() {
             pass_count=$((pass_count + 1))
         else
             echo "[$case_name] FAIL"
-            echo "    --- 期望输出 vs 实际输出 ---"
-            diff -u -b -B "$expected_file" "$actual_file" | sed 's/^/    /'
+            print_block "期望输出" "$expected_file"
+            print_block "实际输出" "$actual_file"
             fail_count=$((fail_count + 1))
         fi
     done
