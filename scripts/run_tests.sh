@@ -47,6 +47,7 @@ if [[ ! -d "$target_dir" ]]; then
 fi
 
 CXX="${CXX:-g++}"
+RUN_TIMEOUT_SECONDS="${RUN_TIMEOUT_SECONDS:-5}"
 
 if ! command -v "$CXX" >/dev/null 2>&1; then
     echo "错误: 未找到编译器 $CXX，请先运行 scripts/setup.sh 完成环境初始化。" >&2
@@ -96,9 +97,16 @@ run_one_problem() {
         return 2
     fi
 
+    echo "编译完成，开始运行测试..."
+
     local pass_count=0
     local fail_count=0
     local ran_any=0
+    local use_timeout=0
+
+    if [[ "$RUN_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] && [[ "$RUN_TIMEOUT_SECONDS" -gt 0 ]] && command -v timeout >/dev/null 2>&1; then
+        use_timeout=1
+    fi
 
     for input_file in "$tests_dir"/*.in; do
         [[ -e "$input_file" ]] || continue
@@ -115,7 +123,21 @@ run_one_problem() {
         local actual_file="$work_dir/$case_name.actual"
         local stderr_file="$work_dir/$case_name.stderr"
 
-        if ! "$binary" < "$input_file" > "$actual_file" 2> "$stderr_file"; then
+        local run_status=0
+        if [[ $use_timeout -eq 1 ]]; then
+            timeout --signal=KILL "${RUN_TIMEOUT_SECONDS}s" "$binary" < "$input_file" > "$actual_file" 2> "$stderr_file"
+            run_status=$?
+            if [[ $run_status -eq 124 ]] || [[ $run_status -eq 137 ]]; then
+                echo "[$case_name] FAIL (运行超时，>${RUN_TIMEOUT_SECONDS}s)"
+                fail_count=$((fail_count + 1))
+                continue
+            fi
+        else
+            "$binary" < "$input_file" > "$actual_file" 2> "$stderr_file"
+            run_status=$?
+        fi
+
+        if [[ $run_status -ne 0 ]]; then
             echo "[$case_name] FAIL (运行时错误，退出码非 0)"
             if [[ -s "$stderr_file" ]]; then
                 sed 's/^/    /' "$stderr_file"

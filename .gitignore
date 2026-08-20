@@ -39,6 +39,12 @@
 *.out
 *.app
 
+# macOS / Xcode build artifacts
+*.dSYM
+*.dSYM/
+*.xctest
+DerivedData/
+
 # Debug build artifacts (scripts/debug.sh, .vscode/launch.json)
 *_debug
 
