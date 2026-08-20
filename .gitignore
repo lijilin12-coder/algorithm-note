@@ -93,3 +93,5 @@ Thumbs.db
 
 # Claude Code local-only settings (machine-specific paths, not shared)
 .claude/settings.local.json
+
+code/
