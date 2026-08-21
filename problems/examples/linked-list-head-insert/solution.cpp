@@ -2,39 +2,19 @@
 #include "linked_list.h"
 
 int main() {
-    int n;
-    if (scanf("%d", &n) != 1) {
-        return 0;
-    }
-
     Node* head = list_create();
-
-    for (int i = 0; i < n; ++i) {
+    /*在这里实现你的代码*/
+    while (1) {
         int value;
         scanf("%d", &value);
-        Node* node = (Node*)malloc(sizeof(Node));
-        node->value = value;
-        node->next = head->next;
-        head->next = node;
-    }
-
-    int x;
-    scanf("%d", &x);
-    Node* node = (Node*)malloc(sizeof(Node));
-    node->value = x;
-    node->next = head->next;
-    head->next = node;
-
-    int first = 1;
-    for (Node* p = head->next; p != NULL; p = p->next) {
-        if (!first) {
-            printf(" ");
+        if (value == -1) {
+            break; // 输入 -1 结束输入
         }
-        printf("%d", p->value);
-        first = 0;
+        list_push_back(head, value); // 在链表尾部插入新节点
     }
-    printf("\n");
 
+    
+    
     list_free(head);
     return 0;
 }
