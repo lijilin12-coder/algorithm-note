@@ -134,3 +134,272 @@ int main() {
     return 0;
 }
 ```
+## 2.引用、常量指针、指针常量
+
+1. 为什么要有常量指针、指针常量
+
+```cpp
+void print_linked_list(const Node* const head)
+{
+    // 这里的head 会又被修改的风险，用 const是一种更保险的操作
+    for(Node* p = head->next; p; p=p->next)
+    {
+        printf("%d ", p->val);
+    }
+    printf("\n");
+}
+```
+
+## 3. 从数组到 vector
+
+### 3.1 原始数组的局限
+
+C 风格数组在刷题时有两个明显的痛点：
+
+```cpp
+int a[5];       // 大小必须在编译期就写死，运行时不能改
+int n;
+cin >> n;
+int b[n];       // 有些编译器支持变长数组，但这不是标准 C++ 的写法，不要依赖它
+
+int cnt = 0;
+int c[100];
+int x;
+while (cin >> x) {
+    c[cnt++] = x;   // 数组开多大全靠猜，猜小了就会越界写坏内存
+}
+```
+
+- **大小固定**：数组一旦声明，长度就不能再变，遇到"不知道有多少个数"的题目
+  只能预先开一个足够大的数组，既浪费空间又可能猜错。
+- **没有长度信息**：数组本身不知道自己存了多少个有效元素，必须额外用一个变量
+  （如上面的 `cnt`）来记录，写多了容易漏更新、越界。
+
+`vector`（`#include <vector>`）就是为了解决这两个问题：它是一个可以动态增长的
+数组，自己记录当前元素个数，用起来和数组几乎一样，但更安全、更省心。
+
+### 3.2 声明与初始化
+
+```cpp
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<int> a;                    // 空 vector，长度为 0
+    vector<int> b(5);                 // 5 个元素，默认初始化为 0
+    vector<int> c(5, -1);             // 5 个元素，都初始化为 -1
+    vector<int> d = {1, 2, 3, 4, 5};  // 列表初始化
+
+    // 二维 vector：3 行 4 列，元素都初始化为 0（对应数组里的 int grid[3][4]）
+    vector<vector<int>> grid(3, vector<int>(4, 0));
+}
+```
+
+### 3.3 增删元素：数组做不到的动态扩容
+
+```cpp
+vector<int> v;
+
+v.push_back(10);   // 尾部添加元素：[10]
+v.push_back(20);   // [10, 20]
+v.pop_back();       // 删除末尾元素：[10]
+
+cout << v.size() << endl;    // 元素个数：1（数组需要自己额外维护这个值）
+cout << v.empty() << endl;   // 是否为空：0（false）
+```
+
+`pop_back` 只能删除末尾元素，如果要删除中间的某个元素，要用 `erase`。`erase`
+需要传入迭代器（用法在 3.5 详细解释，这里先知道 `v.begin() + i` 表示第 `i` 个
+位置即可）：
+
+```cpp
+vector<int> v = {1, 2, 3, 4, 5};
+
+v.erase(v.begin() + 1);        // 删除下标 1 的元素（值为 2）：[1, 3, 4, 5]
+v.erase(v.begin(), v.begin() + 2); // 删除区间 [0, 2)，即前两个元素：[4, 5]
+```
+
+`erase` 会把被删除位置之后的元素依次往前移动，删除一个元素的时间复杂度是
+`O(n)`，比只删末尾的 `pop_back`（`O(1)`）慢很多。刷题时如果只需要删除末尾元素，
+优先用 `pop_back`；只有确实要删除中间元素时才用 `erase`。
+
+**`erase` 之后旧迭代器会失效**：调用 `erase` 之后，指向被删除位置及其之后的
+所有迭代器都会失效，继续用它们（哪怕只是 `++it`）都是未定义行为，运行时可能
+崩溃，也可能不报错但结果不对——这正是“erase 后再访问出错”最常见的原因。典型的
+错误写法和正确写法：
+
+```cpp
+vector<int> v = {1, 2, 3, 2, 5};
+
+// 错误写法：erase 之后 it 已经失效，for 循环里的 ++it 是未定义行为
+for (auto it = v.begin(); it != v.end(); ++it) {
+    if (*it == 2) {
+        v.erase(it); // it 失效了，下一次 ++it 可能崩溃或跳过元素
+    }
+}
+
+// 正确写法：erase 会返回指向下一个有效元素的迭代器，用它来更新 it
+for (auto it = v.begin(); it != v.end(); ) {
+    if (*it == 2) {
+        it = v.erase(it); // 用返回值更新 it，不再手动 ++it
+    } else {
+        ++it;
+    }
+}
+```
+
+**其他删除方式**：
+
+```cpp
+vector<int> v = {1, 2, 3, 2, 5};
+
+v.clear();   // 删除所有元素，之后 v.size() == 0
+
+// remove-erase 写法：一次性删除所有等于某个值的元素
+// remove 只是把要留下的元素移到前面，返回“新末尾”的位置，本身不改变 size()，
+// 真正的删除还是要交给 erase
+v.erase(remove(v.begin(), v.end(), 2), v.end()); // 删除所有值为 2 的元素
+```
+
+### 3.4 访问与遍历：和数组几乎一样
+
+```cpp
+vector<int> v = {1, 2, 3, 4, 5};
+
+v[0] = 100;    // 下标访问/修改，和数组用法相同，越界不会报错，行为未定义
+v.at(0) = 100; // at 访问，越界会抛异常，更安全但稍慢
+
+// 下标遍历
+for (int i = 0; i < (int)v.size(); i++) {
+    cout << v[i] << " ";
+}
+cout << endl;
+
+// 范围 for（C++11），更简洁
+for (int x : v) {
+    cout << x << " ";
+}
+cout << endl;
+
+// 范围 for + 引用，可以直接修改元素
+for (int &x : v) {
+    x *= 2;
+}
+
+// 迭代器遍历，写法介于下标和范围 for 之间，3.5 会解释 it 是什么
+for (auto it = v.begin(); it != v.end(); ++it) {
+    cout << *it << " ";
+}
+cout << endl;
+```
+
+`v.size()` 返回的是无符号整数类型 `size_t`，如果拿它和负数比较，或者用两个
+`size()` 相减，很容易得到意外的结果（比如变成一个很大的正数）。写循环时注意加上
+`(int)` 强转，或者直接用范围 for 避免这个坑。
+
+### 3.5 迭代器：算法函数为什么要传 `begin()`/`end()`
+
+前面遍历用的是下标或范围 for，但后面 3.7 的算法函数（`sort`、`find` 等）都是
+传 `v.begin()`、`v.end()` 这样的“迭代器”，而不是直接传 `v`，这里先解释一下。
+
+迭代器可以理解成一种“广义指针”：它指向容器里的某个元素，可以用 `*it` 取出
+指向的值，用 `++it` 移动到下一个位置。
+
+```cpp
+vector<int> v = {1, 2, 3, 4, 5};
+
+vector<int>::iterator it = v.begin(); // 指向第一个元素
+cout << *it << endl;                   // 1
+
+it++;               // 移动到下一个元素
+cout << *it << endl; // 2
+```
+
+3.4 最后一个例子用 `for (auto it = v.begin(); it != v.end(); ++it)` 遍历了整个
+vector：每次循环 `++it` 移动到下一个位置，`*it` 取出当前指向的值，直到 `it`
+等于 `v.end()` 时停止。
+
+- `v.begin()` 指向第一个元素；`v.end()` 指向“最后一个元素之后”的位置，本身
+  不指向任何有效元素，只用来判断遍历有没有结束，不能对它解引用（`*v.end()`）。
+- `vector` 的迭代器支持随机访问，两个迭代器相减能算出下标：`it - v.begin()`
+  就是 `it` 指向元素的下标，3.7 的 `find` 例子里用到过这个写法。
+- 算法函数统一要求传迭代器而不是容器本身，是因为同一套 `sort`、`find` 逻辑
+  这样就能复用在 `vector`、`list`、`set` 等不同容器上，不用为每种容器单独写一份。
+- 实际写代码时一般不用写出 `vector<int>::iterator` 这么长的类型名，直接用
+  `auto it = v.begin();` 让编译器自动推导即可。
+
+### 3.6 用 vector 解决“不知道要读多少个数”
+
+回到 3.1 的问题：有了 `push_back`，就不用再预先猜数组大小、手动维护计数器了，
+用 `while (cin >> x)` 一直读到输入结束（EOF）即可：
+
+```cpp
+vector<int> v;
+int x;
+while (cin >> x) {
+    v.push_back(x);
+}
+```
+
+### 3.7 配合 `<algorithm>` 的常用算法函数
+
+vector 的另一个好处是能直接配合标准库算法使用，不用自己手写排序、查找这些逻辑。
+常用的按功能分为三类：
+
+**排序 / 反转**
+
+```cpp
+#include <algorithm>
+
+vector<int> v = {5, 3, 1, 4, 2};
+
+sort(v.begin(), v.end());                  // 升序排序：1 2 3 4 5
+sort(v.begin(), v.end(), greater<int>());  // 降序排序：5 4 3 2 1
+
+reverse(v.begin(), v.end());               // 原地反转
+```
+
+**求和 / 求最值**
+
+```cpp
+#include <numeric>   // accumulate
+
+int sum = accumulate(v.begin(), v.end(), 0); // 求和，0 是累加的初始值
+
+auto maxIt = max_element(v.begin(), v.end()); // 指向最大值的迭代器
+auto minIt = min_element(v.begin(), v.end()); // 指向最小值的迭代器
+cout << *maxIt << " " << *minIt << endl;      // 用 * 取出迭代器指向的值
+```
+
+**查找 / 计数**
+
+```cpp
+auto it = find(v.begin(), v.end(), 3);  // 查找第一个等于 3 的元素
+if (it != v.end()) {
+    cout << "找到了，位置：" << it - v.begin() << endl;
+}
+
+int cnt = count(v.begin(), v.end(), 3); // 统计元素 3 出现的次数
+```
+
+### 3.8 小结
+
+| 分类 | 需求 | 写法 |
+| --- | --- | --- |
+| 声明 | 固定长度 / 指定初始值 | `vector<int> b(5)` / `vector<int> c(5, -1)` |
+| 增删 | 尾部添加 / 删除 | `v.push_back(x)` / `v.pop_back()` |
+| 删除 | 删除指定位置 / 删除区间 / 清空 / 删除所有等于某值的元素 | `v.erase(v.begin() + i)` / `v.erase(v.begin(), v.begin() + k)` / `v.clear()` / `v.erase(remove(v.begin(), v.end(), x), v.end())` |
+| 大小 | 元素个数 / 是否为空 | `v.size()` / `v.empty()` |
+| 访问 | 读写单个元素 | `v[i]` 或 `v.at(i)` |
+| 迭代器 | 起止位置 / 取值 / 移动 | `v.begin()` / `v.end()` / `*it` / `++it` |
+| 排序 | 升序 / 降序 / 反转 | `sort(v.begin(), v.end())` / `sort(v.begin(), v.end(), greater<int>())` / `reverse(v.begin(), v.end())` |
+| 统计 | 求和 / 最大最小值 | `accumulate(...)` / `*max_element(...)` / `*min_element(...)` |
+| 查找 | 查找元素 / 统计出现次数 | `find(v.begin(), v.end(), x)` / `count(v.begin(), v.end(), x)` |
+
+### 练习
+
+- [4vector-sum-max](4vector-sum-max/problem.md)：读入 n 个整数，输出它们的和与最大值。
+- [5vector-reverse](5vector-reverse/problem.md)：读入 n 个整数，逆序输出。
+- [6vector-sort](6vector-sort/problem.md)：读入若干整数直到输入结束，排序后输出。
+- [7vector-erase-value](7vector-erase-value/problem.md)：删除 vector 中所有等于某个值的元素。
+- [8vector-find-index](8vector-find-index/problem.md)：用 find 查找元素第一次出现的下标。
