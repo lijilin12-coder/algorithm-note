@@ -403,3 +403,129 @@ int cnt = count(v.begin(), v.end(), 3); // 统计元素 3 出现的次数
 - [6vector-sort](6vector-sort/problem.md)：读入若干整数直到输入结束，排序后输出。
 - [7vector-erase-value](7vector-erase-value/problem.md)：删除 vector 中所有等于某个值的元素。
 - [8vector-find-index](8vector-find-index/problem.md)：用 find 查找元素第一次出现的下标。
+
+## 4. 字符串 string
+
+`string`（`#include <string>`）是 C++ 标准库提供的字符串类型，用起来和
+`vector<char>` 很像：支持动态扩容、下标访问、迭代器遍历，还额外提供了拼接、
+比较、子串、查找等专门针对字符串的操作。
+
+### 4.1 声明与初始化
+
+```cpp
+#include <string>
+using namespace std;
+
+int main() {
+    string a;                  // 空字符串
+    string b = "hello";        // 直接用字符串字面量初始化
+    string c(5, 'x');          // 5 个 'x'："xxxxx"
+    string d = b;              // 拷贝初始化
+}
+```
+
+### 4.2 拼接与比较
+
+```cpp
+string a = "hello", b = "world";
+
+string c = a + " " + b;   // 拼接："hello world"
+a += "!";                  // 追加："hello!"
+
+// 字符串比较是按字典序逐个字符比较，可以直接用关系运算符
+cout << (a == "hello!") << endl;  // 1（true）
+cout << (string("abc") < "abd") << endl;  // 1（true，第三个字符 c < d）
+```
+
+### 4.3 常用方法：长度、下标、子串、查找
+
+```cpp
+string s = "Hello, World!";
+
+s.size();               // 13，和 s.length() 完全一样
+s[0];                    // 'H'，下标访问单个字符
+
+s.substr(0, 5);          // "Hello"：substr(起始位置, 长度)
+s.substr(7);             // "World!"：省略长度表示截到末尾
+
+s.find("World");         // 7：首次出现的下标
+s.find("xyz");           // 找不到，返回 string::npos
+```
+
+`find` 找不到时返回的是 `string::npos`，不是 `-1`。虽然 `npos` 的值通常等于
+`-1` 的无符号表示，但最好用 `string::npos` 来判断，这是标准写法：
+
+```cpp
+if (s.find("xyz") == string::npos) {
+    cout << "not found" << endl;
+}
+```
+
+### 4.4 字符串与数字转换
+
+```cpp
+#include <string>
+
+int n = stoi("123");                     // 字符串转 int：123
+long long big = stoll("1234567890123");  // 字符串转 long long
+
+string s1 = to_string(42);   // 数字转字符串："42"
+string s2 = to_string(3.14); // "3.140000"（浮点数默认 6 位小数）
+```
+
+### 4.5 字符判断与转换
+
+`<cctype>` 提供了一组判断和转换单个字符的函数，在处理字符串的算法题中经常
+用到：
+
+```cpp
+#include <cctype>
+
+isdigit('3');   // 非 0（true），是不是数字字符 '0'-'9'
+isalpha('a');   // 非 0（true），是不是字母
+
+(char)toupper('a');  // 'A'
+(char)tolower('A');  // 'a'
+```
+
+`isdigit`/`isalpha` 等函数的参数类型是 `int`，如果直接传 `char`（尤其是值为
+负的字符），行为是未定义的，稳妥的写法是先转成 `unsigned char` 再传入：
+`isdigit((unsigned char)c)`。
+
+### 4.6 遍历
+
+和 `vector` 一样，`string` 也支持下标遍历、范围 for、迭代器遍历，也能直接
+传给 `sort`、`reverse` 等算法函数：
+
+```cpp
+string s = "hello";
+
+reverse(s.begin(), s.end());  // "olleh"
+
+for (char c : s) {
+    cout << c;
+}
+```
+
+### 4.7 小结
+
+| 分类 | 需求 | 写法 |
+| --- | --- | --- |
+| 声明 | 空字符串 / 重复字符 | `string a` / `string c(5, 'x')` |
+| 拼接 | 连接两个字符串 / 追加 | `a + b` / `a += b` |
+| 比较 | 判断相等 / 字典序比较 | `a == b` / `a < b` |
+| 长度 | 字符个数 | `s.size()` 或 `s.length()` |
+| 访问 | 读写单个字符 | `s[i]` |
+| 子串 | 截取子串 | `s.substr(pos, len)` |
+| 查找 | 查找子串位置 | `s.find(t)`，找不到返回 `string::npos` |
+| 转换 | 字符串转数字 / 数字转字符串 | `stoi(s)` / `stoll(s)` / `to_string(n)` |
+| 字符判断 | 是否数字 / 是否字母 / 大小写转换 | `isdigit(c)` / `isalpha(c)` / `toupper(c)` / `tolower(c)` |
+| 遍历 | 反转 / 逐字符遍历 | `reverse(s.begin(), s.end())` / `for (char c : s)` |
+
+### 练习
+
+- [9string-basic](9string-basic/problem.md)：字符串的拼接、长度和字典序比较。
+- [10string-reverse](10string-reverse/problem.md)：反转字符串。
+- [11string-substr-find](11string-substr-find/problem.md)：用 substr 截取子串，用 find 查找子串位置。
+- [12string-num-convert](12string-num-convert/problem.md)：用 stoi 把字符串转成整数求和，再用 to_string 转回字符串。
+- [13string-char-count](13string-char-count/problem.md)：用 isdigit/isalpha 统计字符串中数字字符和字母字符的个数。
