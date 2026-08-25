@@ -2,32 +2,62 @@
 #include <stdlib.h>
 #include "linked_list.h"
 
-static void read_list(Node* head) {
+static void read_list(Node *head)
+{
     int value;
-    while (scanf("%d", &value) == 1) {
-        if (value == -1) {
+    while (scanf("%d", &value) == 1)
+    {
+        if (value == -1)
+        {
             break;
         }
         list_push_back(head, value);
     }
 }
 
-int main() {
-    Node* list_a = list_create();
-    Node* list_b = list_create();
+int main()
+{
+    Node *list_a = list_create();
+    Node *list_b = list_create();
 
     read_list(list_a);
     read_list(list_b);
 
-    Node* merged = list_create();
-    // 在这里实现你的代码，将 list_a 和 list_b 合并为一个新的链表 merged
-    
+    Node *pa = list_a->next;
+    Node *pb = list_b->next;
+    Node *merged = list_create();
 
+    while (pa != NULL && pb != NULL)
+    {
+        if (pa->value <= pb->value)
+        {
+            list_push_back(merged, pa->value);
+            pa = pa->next;
+        }
+        else
+        {
+            list_push_back(merged, pb->value);
+            pb = pb->next;
+        }
+    }
+
+    while (pa != NULL)
+    {
+        list_push_back(merged, pa->value);
+        pa = pa->next;
+    }
+    while (pb != NULL)
+    {
+        list_push_back(merged, pb->value);
+        pb = pb->next;
+    }
 
     // 输出合并后的链表
     int first = 1;
-    for (Node* p = merged->next; p != NULL; p = p->next) {
-        if (!first) {
+    for (Node *p = merged->next; p != NULL; p = p->next)
+    {
+        if (!first)
+        {
             printf(" ");
         }
         printf("%d", p->value);
