@@ -17,10 +17,10 @@ Node* reverse_list(Node* head) {
 
 int main() {
     Node* sentinel = list_create();
-    int value;
+    int val;
 
-    while (std::cin >> value && value != -1) {
-        list_push_back(sentinel, value);
+    while (std::cin >> val && val != -1) {
+        list_push_back(sentinel, val);
     }
 
     sentinel->next = reverse_list(sentinel->next);
@@ -30,7 +30,7 @@ int main() {
         if (current != sentinel->next) {
             std::cout << ' ';
         }
-        std::cout << current->value;
+        std::cout << current->val;
         current = current->next;
     }
     std::cout << '\n';
