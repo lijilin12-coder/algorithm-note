@@ -9,6 +9,35 @@ struct ListNode
 
 struct ListNode *partition(struct ListNode *head, int x)
 {
+    ListNode *small = (ListNode *)malloc(sizeof(ListNode));
+    small->next = NULL;
+    small->val = 0;
+    ListNode *a = small;
+    ListNode *large = (ListNode *)malloc(sizeof(ListNode));
+    large->next = NULL;
+    large->val = 0;
+    ListNode *b = large;
+    ListNode *result = (ListNode *)malloc(sizeof(ListNode));
+    result->next = NULL;
+    result->val = 0;
+
+    for (ListNode *p = head; p != NULL; p = p->next)
+    {
+        if (p->val < x)
+        {
+            a->next = p;
+            a = a->next;
+        }
+
+        if (p->val >= x)
+        {
+            b->next = p;
+            b = b->next;
+        }
+    }
+    b->next = NULL;
+    a->next = large->next;
+    return small->next;
 }
 
 int main()
