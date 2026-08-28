@@ -38,7 +38,7 @@ int main()
         {
             std::cout << ' ';
         }
-        std::cout << current->value;
+        std::cout << current->val;
         current = current->next;
     }
     std::cout << '\n';

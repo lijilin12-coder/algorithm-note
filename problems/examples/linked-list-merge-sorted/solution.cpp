@@ -11,7 +11,7 @@ static void read_list(Node *head)
         {
             break;
         }
-        list_push_back(head, value);
+        list_push_back(head, val);
     }
 }
 
@@ -60,7 +60,7 @@ int main()
         {
             printf(" ");
         }
-        printf("%d", p->value);
+        printf("%d", p->val);
         first = 0;
     }
     printf("\n");
