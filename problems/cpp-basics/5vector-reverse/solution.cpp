@@ -2,37 +2,29 @@
 #include <iostream>
 #include <algorithm>
 #include <vector>
-
 using namespace std;
 
 int main()
 {
-    int cnt = 0;
-    cin >> cnt;
-
-    vector<int> nums;
-    for(int i = 0; i < cnt ; ++i)
+    vector<int> m;
+    int a, b;
+    int i = 0;
+    cin >> a;
+    while (i < a)
     {
-        int temp;
-        cin >> temp;
-        nums.push_back(temp);
+        i++;
+        cin >> b;
+        m.push_back(b);
     }
-
-    reverse(nums.begin(), nums.end());
-
-    bool first = true;
-    for(auto x : nums)
+    reverse(m.begin(), m.end());
+    int row = 0;
+    for (row = 0; row < m.size(); row++)
     {
-        if (first)
+        cout << m[row];
+        if (row < m.size() - 1)
         {
-            cout << x;
-            first = false;
-        } else
-        {
-            cout << " " << x ;
+            cout << " ";
         }
     }
-    cout << endl;
-
     return 0;
 }

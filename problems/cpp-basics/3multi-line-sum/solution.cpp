@@ -1,1 +1,16 @@
 // 提示：使用 while (cin >> a >> b) 不断读取两个整数直到输入结束，每组输出 a + b。
+#include <iomanip>
+#include <iostream>
+using namespace std;
+int main()
+{
+    int a;
+    int b;
+
+    while (cin >> a >> b)
+    {
+
+        cout << a + b << endl;
+    }
+    return 0;
+}
