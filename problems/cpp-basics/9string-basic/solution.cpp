@@ -3,25 +3,17 @@
 #include <string>
 
 using namespace std;
-
 int main()
 {
     string a, b;
     cin >> a >> b;
-
     cout << a + b << endl;
     cout << a.size() << " " << b.size() << endl;
-
     if (a == b)
-    {
         cout << "equal" << endl;
-    } else if (a < b)
-    {
+    else if (a < b)
         cout << "less" << endl;
-    } else
-    {
+    else
         cout << "greater" << endl;
-    }
-
     return 0;
 }

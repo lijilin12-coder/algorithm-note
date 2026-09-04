@@ -3,36 +3,45 @@
 #include <vector>
 
 using namespace std;
-
 int main()
 {
-    int cnt = 0;
-    int target = -1;
-    cin >> cnt >> target;
-
-    vector<int> nums;
-    for(int i = 0; i < cnt ; ++i)
+    int n, target;
+    vector<int> m;
+    cin >> n >> target;
+    int i = 0;
+    int in;
+    while (i < n)
     {
-        int temp;
-        cin >> temp;
-        nums.push_back(temp);
+        i++;
+        cin >> in;
+        m.push_back(in);
     }
-
-    nums.erase(remove(nums.begin(), nums.end(), target), nums.end());
-
-    bool first = true;
-    for(auto x : nums)
+    i = 0;
+    for (i = 0; i < m.size(); i++)
     {
-        if (first)
+        if (m[i] == target)
         {
-            cout << x;
-            first = false;
-        } else
-        {
-            cout << " " << x ;
+            m.erase(m.begin() + i);
         }
     }
-    cout << endl;
+    i = 0;
+    for (i = 0; i <= m.size(); i++)
+    {
+        if (i < m.size() - 1)
+        {
+            cout << m[i] << " ";
+        }
+        else if (i == m.size() - 1 && i == 0)
+        {
+            cout << "\n";
+        }
+
+        else if (i == m.size() - 1 && 1 != 0)
+        {
+            cout << m[i];
+            break;
+        }
+    }
 
     return 0;
 }
