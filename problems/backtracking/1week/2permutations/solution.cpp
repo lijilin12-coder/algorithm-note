@@ -9,7 +9,7 @@ vector<bool> visited(N, false); // 是否已经用过这个数了
 
 void dfs(int n, vector<int> cur_ans)
 {
-    //检查
+    //1. 检查
     if(cur_ans.size() == n)
     {
         ans.push_back(cur_ans);
@@ -18,14 +18,19 @@ void dfs(int n, vector<int> cur_ans)
 
     for(int i =1; i <=n; ++i)
     {
+        // 2. 判断能够递归
         if(visited[i] == true) continue;
 
-        // 使用这个数
+        // 3. 使用当前元素
         cur_ans.push_back(i);
-        visited[i] = true;
+        visited[i] = true;    
 
+        // (1)  --> (1, 2, 3 )  (1, 3, 2)
+        // (2)  --> (2, 1, 3)   (2. 3. 1)
+        // 4. 递归搜索
         dfs(n, cur_ans);
 
+        // 5. 恢复
         cur_ans.pop_back();
         visited[i] = false;
     }
