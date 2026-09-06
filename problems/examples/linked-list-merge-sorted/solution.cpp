@@ -3,12 +3,12 @@
 #include "linked_list.h"
 
 static void read_list(Node* head) {
-    int value;
-    while (scanf("%d", &value) == 1) {
-        if (value == -1) {
+    int val;
+    while (scanf("%d", &val) == 1) {
+        if (val == -1) {
             break;
         }
-        list_push_back(head, value);
+        list_push_back(head, val);
     }
 }
 
@@ -30,7 +30,7 @@ int main() {
         if (!first) {
             printf(" ");
         }
-        printf("%d", p->value);
+        printf("%d", p->val);
         first = 0;
     }
     printf("\n");

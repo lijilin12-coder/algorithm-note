@@ -16,13 +16,13 @@ int main() {
     dummy.next = NULL;
     struct ListNode* tail = &dummy;
 
-    int value;
-    while (scanf("%d", &value) == 1) {
-        if (value == -1) {
+    int val;
+    while (scanf("%d", &val) == 1) {
+        if (val == -1) {
             break;
         }
         struct ListNode* node = (struct ListNode*)malloc(sizeof(struct ListNode));
-        node->val = value;
+        node->val = val;
         node->next = NULL;
         tail->next = node;
         tail = node;
