@@ -1,28 +1,29 @@
-// 斐波那契数列：递推即可，第 3 项开始等于前两项之和，无需回溯。
 #include <iostream>
-#include <vector>
-
 using namespace std;
+const int N = 50;
+int ans[50];
+
+int f(int n)
+{
+    if (ans[n] != -1) return ans[n];
+    ans[n] = f(n-1) + f(n-2);;
+    return ans[n];
+}
 
 int main()
-{
-    int n = 0;
+{   
+    int n;
     cin >> n;
-
-    vector<long long> fib(n);
-    for (int i = 0; i < n; ++i)
+    for(int i = 0;i<N;++i)
     {
-        if (i == 0) fib[i] = 0;
-        else if (i == 1) fib[i] = 1;
-        else fib[i] = fib[i - 1] + fib[i - 2];
+        ans[i] = -1;
     }
-
-    for (int i = 0; i < n; ++i)
+    ans[1] = 0;
+    ans[2] = 1;
+    f(n);
+    for(int i = 1; i<=n; i++)
     {
-        cout << fib[i];
-        if (i != n - 1) cout << " ";
+        cout << ans[i] << " ";
     }
     cout << endl;
-
-    return 0;
 }
