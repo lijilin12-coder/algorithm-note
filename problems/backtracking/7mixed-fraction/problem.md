@@ -22,6 +22,11 @@
 枚举n
 99 * n ? 
 
+C + B = 9 - target_cnt;  C + B的位数只能是    9 - target_cnt
+C - B = target_cnt       C - B 的位数 只能是  target_cnt
+
+C 只能是 5  B 只能是 3
+
 考虑剪枝
 
 还可以表示为：`100 = 82 + 3546/197`。
