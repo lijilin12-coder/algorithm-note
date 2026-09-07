@@ -22,7 +22,7 @@
 
 // 链表节点：value 存数据，next 指向下一个节点（NULL 表示链表结束）。
 typedef struct Node {
-    int value;
+    int val;
     struct Node* next;
 } Node;
 
@@ -30,15 +30,15 @@ typedef struct Node {
 // 使用哨兵头节点可以让插入/删除的逻辑不必对"链表为空"这种特殊情况单独处理。
 static inline Node* list_create(void) {
     Node* head = (Node*)malloc(sizeof(Node));
-    head->value = 0;
+    head->val = 0;
     head->next = NULL;
     return head;
 }
 
-// 在链表尾部插入一个新节点，值为 value。
-static inline void list_push_back(Node* head, int value) {
+// 在链表尾部插入一个新节点，值为 val。
+static inline void list_push_back(Node* head, int val) {
     Node* new_node = (Node*)malloc(sizeof(Node));
-    new_node->value = value;
+    new_node->val = val;
     new_node->next = NULL;
 
     // 找到当前的尾节点（next 为 NULL 的节点）。
@@ -49,11 +49,11 @@ static inline void list_push_back(Node* head, int value) {
     last_node->next = new_node;
 }
 
-// 从头开始查找第一个值等于 value 的节点，找到返回该节点指针，找不到返回 NULL。
-static inline Node* list_find(Node* head, int value) {
+// 从头开始查找第一个值等于 val 的节点，找到返回该节点指针，找不到返回 NULL。
+static inline Node* list_find(Node* head, int val) {
     Node* current = head->next;
     while (current != NULL) {
-        if (current->value == value) {
+        if (current->val == val) {
             return current;
         }
         current = current->next;
@@ -61,12 +61,12 @@ static inline Node* list_find(Node* head, int value) {
     return NULL;
 }
 
-// 删除第一个值等于 value 的节点。找到并删除返回 1，没找到返回 0。
-static inline int list_remove(Node* head, int value) {
+// 删除第一个值等于 val 的节点。找到并删除返回 1，没找到返回 0。
+static inline int list_remove(Node* head, int val) {
     Node* prev = head;
     Node* current = head->next;
     while (current != NULL) {
-        if (current->value == value) {
+        if (current->val == val) {
             prev->next = current->next;
             free(current);
             return 1;

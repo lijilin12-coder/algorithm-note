@@ -6,7 +6,7 @@ struct ListNode {
     struct ListNode *next;
 };
 
-struct ListNode* partition(struct ListNode* head, int x) {
+struct ListNode* reverseBetween(struct ListNode* head, int left, int right) {
     // 在这里实现你的代码
 
 }
@@ -16,22 +16,22 @@ int main() {
     dummy.next = NULL;
     struct ListNode* tail = &dummy;
 
-    int val;
-    while (scanf("%d", &val) == 1) {
-        if (val == -1) {
+    int value;
+    while (scanf("%d", &value) == 1) {
+        if (value == -1) {
             break;
         }
         struct ListNode* node = (struct ListNode*)malloc(sizeof(struct ListNode));
-        node->val = val;
+        node->val = value;
         node->next = NULL;
         tail->next = node;
         tail = node;
     }
 
-    int x;
-    scanf("%d", &x);
+    int left, right;
+    scanf("%d %d", &left, &right);
 
-    struct ListNode* result = partition(dummy.next, x);
+    struct ListNode* result = reverseBetween(dummy.next, left, right);
 
     int first = 1;
     for (struct ListNode* p = result; p != NULL; p = p->next) {
