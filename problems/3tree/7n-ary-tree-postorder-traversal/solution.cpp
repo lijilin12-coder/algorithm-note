@@ -1,12 +1,12 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "tree.h"
+#include "nary_tree.h"
 using namespace std;
 
 class Solution {
 public:
-    vector<int> postorderTraversal(TreeNode* root) {
+    vector<int> postorder(Node* root) {
         // 在这里实现你的代码
 
     }
@@ -17,10 +17,10 @@ int main() {
     string tok;
     while (cin >> tok) tokens.push_back(tok);
 
-    TreeNode* root = build_tree(tokens);
+    Node* root = build_nary_tree(tokens);
 
     Solution sol;
-    vector<int> res = sol.postorderTraversal(root);
+    vector<int> res = sol.postorder(root);
 
     for (size_t i = 0; i < res.size(); ++i) {
         if (i) cout << ' ';
@@ -28,6 +28,6 @@ int main() {
     }
     cout << '\n';
 
-    tree_free(root);
+    nary_tree_free(root);
     return 0;
 }
