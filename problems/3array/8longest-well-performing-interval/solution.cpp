@@ -5,19 +5,21 @@ using namespace std;
 
 class Solution {
 public:
-    int subarraySum(vector<int>& nums, int k) {
+    int longestWPI(vector<int>& hours) {
+       
+        return 0;
     }
 };
 
 int main() {
-    int n, k;
-    cin >> n >> k;
+    int n;
+    cin >> n;
 
-    vector<int> nums(n);
+    vector<int> hours(n);
     for (int i = 0; i < n; ++i)
-        cin >> nums[i];
+        cin >> hours[i];
 
     Solution sol;
-    cout << sol.subarraySum(nums, k) << '\n';
+    cout << sol.longestWPI(hours) << '\n';
     return 0;
 }

@@ -5,7 +5,9 @@ using namespace std;
 
 class Solution {
 public:
-    int subarraySum(vector<int>& nums, int k) {
+    int subarraysDivByK(vector<int>& nums, int k) {
+        // 在这里实现你的代码
+        return 0;
     }
 };
 
@@ -18,6 +20,6 @@ int main() {
         cin >> nums[i];
 
     Solution sol;
-    cout << sol.subarraySum(nums, k) << '\n';
+    cout << sol.subarraysDivByK(nums, k) << '\n';
     return 0;
 }
