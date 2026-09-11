@@ -30,7 +30,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/solution_debug",
-            "args": ["<", "${fileDirname}/tests/1.in"],
+            "args": ["<", "${fileDirname}/tests/6.in"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
