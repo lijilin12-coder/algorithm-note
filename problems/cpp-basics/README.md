@@ -1,7 +1,7 @@
 # C++ 基础入门
 ## 1. 输入输
 ### 1.1 hello, world!
-
+、
 ```cpp
 #include <iostream>      // 引入输入输出库
 using namespace std;     // 使用标准命名空间

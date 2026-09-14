@@ -36,4 +36,12 @@ scripts/run_tests.sh problems/examples/a-plus-b
 
 编译 `solution.cpp` 时已统一加入 `-I <仓库根>/common`，题目中可直接用
 `#include "linked_list.h"` 等方式引用 [common/](../common/) 下的共享头文件，无需
-重复实现常用数据结构/工具函数。
+重复实现常用数据结构/工具函数。目前提供：
+
+- `linked_list.h`：单链表。
+- `tree.h`：二叉树（LeetCode 风格节点 + 按层序 token 建树/释放，遍历由题目自
+  己实现）。
+- `nary_tree.h`：N 叉树（LeetCode 风格节点 + 按层序 token 建树/释放，遍历由
+  题目自己实现）。
+- `queue.h`：链表实现的队列（FIFO），常用于层序遍历（BFS）。
+- `stack.h`：链表实现的栈（LIFO），常用于迭代式 DFS。

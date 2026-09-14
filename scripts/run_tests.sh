@@ -48,6 +48,7 @@ fi
 
 CXX="${CXX:-g++}"
 RUN_TIMEOUT_SECONDS="${RUN_TIMEOUT_SECONDS:-1}"
+echo "RUN_TIMEOUT_SECONDS: ${RUN_TIMEOUT_SECONDS}"
 
 if ! command -v "$CXX" >/dev/null 2>&1; then
     echo "错误: 未找到编译器 $CXX，请先运行 scripts/setup.sh 完成环境初始化。" >&2
