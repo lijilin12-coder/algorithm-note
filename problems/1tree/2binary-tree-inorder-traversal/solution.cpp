@@ -4,26 +4,37 @@
 #include "tree.h"
 using namespace std;
 
-class Solution {
+class Solution
+{
 public:
-    vector<int> inorderTraversal(TreeNode* root) {
-        // 在这里实现你的代码
-
+    vector<int> ans;
+    vector<int> inorderTraversal(TreeNode *root)
+    {
+        if (root == nullptr)
+            return ans;
+        inorderTraversal(root->left);
+        ans.push_back(root->val);
+        inorderTraversal(root->right);
+        return ans;
     }
 };
 
-int main() {
+int main()
+{
     vector<string> tokens;
     string tok;
-    while (cin >> tok) tokens.push_back(tok);
+    while (cin >> tok)
+        tokens.push_back(tok);
 
-    TreeNode* root = build_tree(tokens);
+    TreeNode *root = build_tree(tokens);
 
     Solution sol;
     vector<int> res = sol.inorderTraversal(root);
 
-    for (size_t i = 0; i < res.size(); ++i) {
-        if (i) cout << ' ';
+    for (size_t i = 0; i < res.size(); ++i)
+    {
+        if (i)
+            cout << ' ';
         cout << res[i];
     }
     cout << '\n';
