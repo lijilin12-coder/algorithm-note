@@ -4,26 +4,39 @@
 #include "nary_tree.h"
 using namespace std;
 
-class Solution {
+class Solution
+{
 public:
-    vector<int> postorder(Node* root) {
-        // 在这里实现你的代码
-
+    vector<int> ans;
+    vector<int> postorder(Node *root)
+    {
+        if (root == nullptr)
+            return ans;
+        for (Node *child : root->children)
+        {
+            postorder(child);
+        }
+        ans.push_back(root->val);
+        return ans;
     }
 };
 
-int main() {
+int main()
+{
     vector<string> tokens;
     string tok;
-    while (cin >> tok) tokens.push_back(tok);
+    while (cin >> tok)
+        tokens.push_back(tok);
 
-    Node* root = build_nary_tree(tokens);
+    Node *root = build_nary_tree(tokens);
 
     Solution sol;
     vector<int> res = sol.postorder(root);
 
-    for (size_t i = 0; i < res.size(); ++i) {
-        if (i) cout << ' ';
+    for (size_t i = 0; i < res.size(); ++i)
+    {
+        if (i)
+            cout << ' ';
         cout << res[i];
     }
     cout << '\n';
