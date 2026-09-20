@@ -8,18 +8,7 @@ class Solution
 public:
     int coinChange(vector<int> &coins, int amount)
     {
-        vector<int> amount_minstep(amount + 1, amount + 1);
-        amount_minstep[0] = 0;
-        for (int i = 0; i < amount_minstep.size(); ++i)
-        {
-            for (const auto &c : coins)
-            {
-                if (i - c < 0)
-                    continue;
-                amount_minstep[i] = min(amount_minstep[i], amount_minstep[i - c] + 1);
-            }
-        }
-        return amount_minstep[amount] == amount + 1 ? -1 : amount_minstep[amount];
+        // 在这里开始实现你的代码
     }
 };
 
