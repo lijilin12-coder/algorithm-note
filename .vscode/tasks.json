@@ -1,7 +1,8 @@
 {
     // 配合 launch.json 使用：调试前自动以调试符号编译当前题目。
     // ${fileDirname} 自动取当前激活编辑器文件所在的题目文件夹，切换题目时无需修改
-    // 本文件；但要求启动调试时当前激活的编辑器标签页就是目标题目的 solution.cpp。
+    // 本文件；但要求启动调试时当前激活的编辑器标签页就是目标题目的 solution.cpp
+    // （C++ 题目）或 solution.py（Python 题目）。
     "version": "2.0.0",
     "tasks": [
         {
@@ -24,6 +25,40 @@
                 "isDefault": true
             },
             "problemMatcher": ["$gcc"]
+        },
+        {
+            // Python 不需要编译，但 debugpy 的 launch 模式不支持像 cppdbg 那样用
+            // "args": ["<", "文件"] 做 shell 风格 stdin 重定向（debugpy 直接 exec
+            // 目标脚本，不经过 shell）。这里改用 attach 模式：本任务先在后台通过
+            // scripts/debugpy_listen.sh 以 `--wait-for-client` 启动 debugpy 监听，
+            // 并把该题目的默认用例输入（tests/1.in）重定向为被调试脚本的 stdin；
+            // 该脚本探测到监听端口真正可连接后会打印 DEBUGPY_READY，本任务的
+            // problemMatcher 用这行文本判断“可以 attach 了”，随后 launch.json 中
+            // 的 "Debug Python (current problem)" 配置自动 attach 上来。对用户来说
+            // 仍然是打开 solution.py 后按一次 F5。
+            //
+            // 依赖：运行题目的 Python 环境需要能 `python3 -m debugpy`（先执行一次
+            // `pip install debugpy`）；这与 VS Code Python 扩展自带、用于普通
+            // launch 调试的 debugpy 是两回事。
+            "label": "启动 Python 调试目标（debugpy 监听）",
+            "type": "shell",
+            "command": "${workspaceFolder}/scripts/debugpy_listen.sh",
+            "args": [
+                "${fileDirname}/solution.py",
+                "${fileDirname}/tests/1.in"
+            ],
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "python-debugpy-listen",
+                "pattern": {
+                    "regexp": "^--never-matches--$"
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^.*$",
+                    "endsPattern": "DEBUGPY_READY"
+                }
+            }
         }
     ]
 }

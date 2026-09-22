@@ -20,9 +20,21 @@
     //     入）。macOS 配置改用 lldb 的 "target.input-path" 设置重定向，未在真实
     //     macOS 环境验证，如遇问题请改用命令行 `scripts/debug.sh` 调试。
     //
-    // 已提供两组配置：
-    //   - "Debug (Linux/WSL - gdb)"：在 WSL/Linux 下使用 gdb
-    //   - "Debug (macOS - lldb)"：在 macOS 下使用 lldb
+    // 已提供三组配置：
+    //   - "Debug (Linux/WSL - gdb)"：C++ 题目，在 WSL/Linux 下使用 gdb
+    //   - "Debug (macOS - lldb)"：C++ 题目，在 macOS 下使用 lldb
+    //   - "Debug Python (current problem)"：Python 题目（solution.py），使用
+    //     debugpy。用法同上：打开题目的 solution.py 作为当前激活标签页，按 F5。
+    //
+    //     实现说明：debugpy 的 "launch" 模式不支持 cppdbg 那种 shell 风格的
+    //     stdin 重定向参数，所以这里改用 "attach" 模式——preLaunchTask
+    //     （scripts/debugpy_listen.sh）先在后台以 --wait-for-client 启动目标
+    //     脚本并把 tests/1.in 重定向为其 stdin，端口就绪后本配置再 attach 上
+    //     去。对使用者而言仍是一次 F5，只是内部多了一次自动完成的握手。
+    //
+    //     依赖：需要先在运行环境里执行一次 `pip install debugpy`（VS Code
+    //     Python 扩展自带的 debugpy 只服务于扩展自己发起的 launch 调试，不能
+    //     被这里的命令行监听方式复用）。
     "version": "0.2.0",
     "configurations": [
         {
@@ -73,6 +85,17 @@
                     "ignoreFailures": false
                 }
             ]
+        },
+        {
+            "name": "Debug Python (current problem)",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "preLaunchTask": "启动 Python 调试目标（debugpy 监听）",
+            "justMyCode": true
         }
     ]
 }

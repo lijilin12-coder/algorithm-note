@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# 一键初始化本地开发环境：检测操作系统并安装/校验 C++ 编译器。
+# 一键初始化本地开发环境：检测操作系统并安装/校验 C++ 编译器与 Python 解释器。
 #
 # 支持:
-#   - macOS（通过 Homebrew 安装 gcc）
-#   - WSL / Linux（通过 apt 安装 build-essential）
+#   - macOS（通过 Homebrew 安装 gcc / python）
+#   - WSL / Linux（通过 apt 安装 build-essential / python3）
 #
 # 用法:
 #   scripts/setup.sh
@@ -11,10 +11,19 @@
 set -uo pipefail
 
 CXX="${CXX:-g++}"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 check_compiler() {
     if command -v "$CXX" >/dev/null 2>&1; then
         echo "已找到编译器: $("$CXX" --version | head -1)"
+        return 0
+    fi
+    return 1
+}
+
+check_python() {
+    if command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+        echo "已找到 Python 解释器: $("$PYTHON_BIN" --version 2>&1)"
         return 0
     fi
     return 1
@@ -25,33 +34,39 @@ echo "检测到操作系统: $os_name"
 
 case "$os_name" in
     Darwin)
-        if check_compiler; then
-            :
-        else
+        if ! check_compiler || ! check_python; then
             if ! command -v brew >/dev/null 2>&1; then
                 echo "错误: 未检测到 Homebrew，请先按 https://brew.sh 安装后重试。" >&2
-                exit 1
-            fi
-            echo "正在通过 Homebrew 安装 gcc ..."
-            if ! brew install gcc; then
-                echo "错误: brew install gcc 失败，请查看上方输出。" >&2
-                exit 1
+            else
+                if ! check_compiler; then
+                    echo "正在通过 Homebrew 安装 gcc ..."
+                    brew install gcc || echo "错误: brew install gcc 失败，请查看上方输出。" >&2
+                fi
+                if ! check_python; then
+                    echo "正在通过 Homebrew 安装 python ..."
+                    brew install python || echo "错误: brew install python 失败，请查看上方输出。" >&2
+                fi
             fi
         fi
         ;;
     Linux)
-        if check_compiler; then
-            :
-        else
+        if ! check_compiler || ! check_python; then
             if command -v apt-get >/dev/null 2>&1; then
-                echo "正在通过 apt 安装 build-essential（可能需要输入密码）..."
-                if ! sudo apt-get update || ! sudo apt-get install -y build-essential; then
-                    echo "错误: apt-get 安装失败，请查看上方输出。" >&2
-                    exit 1
+                echo "正在更新 apt 软件包索引（可能需要输入密码）..."
+                if sudo apt-get update; then
+                    if ! check_compiler; then
+                        echo "正在通过 apt 安装 build-essential ..."
+                        sudo apt-get install -y build-essential || echo "错误: build-essential 安装失败，请查看上方输出。" >&2
+                    fi
+                    if ! check_python; then
+                        echo "正在通过 apt 安装 python3 ..."
+                        sudo apt-get install -y python3 || echo "错误: python3 安装失败，请查看上方输出。" >&2
+                    fi
+                else
+                    echo "错误: apt-get update 失败，请查看上方输出。" >&2
                 fi
             else
-                echo "错误: 未检测到 apt-get，请手动安装 g++ 后重试。" >&2
-                exit 1
+                echo "错误: 未检测到 apt-get，请手动安装缺失的 g++/python3 后重试。" >&2
             fi
         fi
         ;;
@@ -61,11 +76,23 @@ case "$os_name" in
         ;;
 esac
 
-if check_compiler; then
-    echo ""
-    echo "环境初始化完成，可运行示例题目验证："
-    echo "  scripts/run_tests.sh problems/examples/a-plus-b"
-else
-    echo "错误: 编译器安装流程已执行，但仍未检测到 $CXX，请手动检查安装。" >&2
+compiler_ready=0
+python_ready=0
+check_compiler && compiler_ready=1
+check_python && python_ready=1
+
+if [[ $compiler_ready -eq 0 ]]; then
+    echo "错误: 仍未检测到编译器 $CXX，请手动检查安装。" >&2
+fi
+
+if [[ $python_ready -eq 0 ]]; then
+    echo "错误: 仍未检测到 Python 解释器 $PYTHON_BIN，请手动检查安装。" >&2
+fi
+
+if [[ $compiler_ready -eq 0 || $python_ready -eq 0 ]]; then
     exit 1
 fi
+
+echo ""
+echo "环境初始化完成，可运行示例题目验证："
+echo "  scripts/run_tests.sh problems/examples/a-plus-b"

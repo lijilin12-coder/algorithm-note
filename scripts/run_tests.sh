@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# 编译题目解答并运行全部测试用例，逐用例报告 PASS/FAIL。
+# 编译（C++）或直接运行（Python）题目解答，跑全部测试用例，逐用例报告 PASS/FAIL。
 #
 # 用法:
 #   scripts/run_tests.sh <题目目录>
 #
-# <题目目录> 直接包含 solution.cpp 时，按单题目模式运行。
-# <题目目录> 不直接包含 solution.cpp 时，按批量模式运行：递归扫描该目录下所有
-# 同时包含 solution.cpp 与 tests/ 的子目录（不限层级），按路径排序依次运行；
-# 某个题目失败（编译失败或有用例 FAIL）时跳过该题目，继续运行后续题目，最后
-# 汇总输出所有失败的题目；只要有题目失败，脚本整体以非 0 状态退出。
+# <题目目录> 直接包含 solution.cpp 或 solution.py 时，按单题目模式运行；一道题目
+# 只能有其中一个解答文件，两者同时存在会报错。
+# <题目目录> 不直接包含解答文件时，按批量模式运行：递归扫描该目录下所有同时包含
+# 解答文件（solution.cpp 或 solution.py）与 tests/ 的子目录（不限层级），按路径
+# 排序依次运行，C++ 与 Python 题目可以混在同一批次里；某个题目失败（编译失败或
+# 有用例 FAIL）时跳过该题目，继续运行后续题目，最后汇总输出所有失败的题目；只要
+# 有题目失败，脚本整体以非 0 状态退出。
 #
 # 示例:
 #   scripts/run_tests.sh problems/examples/a-plus-b   # 单题目
@@ -16,7 +18,7 @@
 #   scripts/run_tests.sh problems                      # 批量：全部题目
 #
 # 题目目录约定见 problems/README.md：
-#   <题目目录>/solution.cpp
+#   <题目目录>/solution.cpp 或 <题目目录>/solution.py（二选一）
 #   <题目目录>/tests/<编号>.in
 #   <题目目录>/tests/<编号>.ans
 
@@ -27,6 +29,10 @@ set -uo pipefail
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(dirname "$script_dir")
 common_dir="$repo_root/common"
+
+# detect_language / language_conflict_message / language_missing_message：
+# 与 scripts/debug.sh 共用同一份语言判定逻辑和报错文案。
+source "$script_dir/lib/problem_language.sh"
 
 usage() {
     echo "用法: $0 <题目目录>" >&2
@@ -47,13 +53,9 @@ if [[ ! -d "$target_dir" ]]; then
 fi
 
 CXX="${CXX:-g++}"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 RUN_TIMEOUT_SECONDS="${RUN_TIMEOUT_SECONDS:-1}"
 echo "RUN_TIMEOUT_SECONDS: ${RUN_TIMEOUT_SECONDS}"
-
-if ! command -v "$CXX" >/dev/null 2>&1; then
-    echo "错误: 未找到编译器 $CXX，请先运行 scripts/setup.sh 完成环境初始化。" >&2
-    exit 2
-fi
 
 print_block() {
     local title="$1"
@@ -67,17 +69,65 @@ print_block() {
     fi
 }
 
+# 编译/准备单个题目目录的可执行运行命令，把结果写入调用方通过 $2 指定的数组变量
+# （bash 3.2 不支持返回数组，改用 eval 拼装）。成功返回 0，失败返回非 0 并打印
+# 编译错误（若适用）。
+prepare_runner() {
+    local problem_dir="$1"
+    local language="$2"
+    local work_dir="$3"
+    local __runner_var="$4"
+
+    case "$language" in
+        cpp)
+            if ! command -v "$CXX" >/dev/null 2>&1; then
+                echo "错误: 未找到编译器 $CXX，请先运行 scripts/setup.sh 完成环境初始化。" >&2
+                return 2
+            fi
+            local binary="$work_dir/solution"
+            echo "正在编译 $problem_dir/solution.cpp ..."
+            if ! "$CXX" -O2 -std=c++17 -Wall -I "$common_dir" -o "$binary" "$problem_dir/solution.cpp" 2> "$work_dir/compile.log"; then
+                echo "编译失败:" >&2
+                cat "$work_dir/compile.log" >&2
+                return 2
+            fi
+            echo "编译完成，开始运行测试..."
+            eval "$__runner_var=(\"\$binary\")"
+            ;;
+        python)
+            if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+                echo "错误: 未找到 Python 解释器 $PYTHON_BIN，请先运行 scripts/setup.sh 完成环境初始化。" >&2
+                return 2
+            fi
+            echo "使用 $PYTHON_BIN 运行 $problem_dir/solution.py（无需编译），开始运行测试..."
+            eval "$__runner_var=(\"\$PYTHON_BIN\" \"\$problem_dir/solution.py\")"
+            ;;
+        *)
+            return 2
+            ;;
+    esac
+    return 0
+}
+
 # 编译并运行单个题目目录的全部测试用例，输出逐用例 PASS/FAIL。
 # 成功（全部用例通过）返回 0，用例 FAIL 返回 1，环境/参数错误返回 2。
 run_one_problem() {
     local problem_dir="$1"
-    local solution="$problem_dir/solution.cpp"
     local tests_dir="$problem_dir/tests"
 
-    if [[ ! -f "$solution" ]]; then
-        echo "错误: 未找到解答文件 $solution" >&2
-        return 2
-    fi
+    local language
+    detect_language "$problem_dir" language
+
+    case "$language" in
+        both)
+            language_conflict_message "$problem_dir" >&2
+            return 2
+            ;;
+        none)
+            language_missing_message "$problem_dir" >&2
+            return 2
+            ;;
+    esac
 
     if [[ ! -d "$tests_dir" ]]; then
         echo "错误: 未找到测试用例目录 $tests_dir" >&2
@@ -89,16 +139,10 @@ run_one_problem() {
     # shellcheck disable=SC2064
     trap "rm -rf '$work_dir'" RETURN
 
-    local binary="$work_dir/solution"
-
-    echo "正在编译 $solution ..."
-    if ! "$CXX" -O2 -std=c++17 -Wall -I "$common_dir" -o "$binary" "$solution" 2> "$work_dir/compile.log"; then
-        echo "编译失败:" >&2
-        cat "$work_dir/compile.log" >&2
+    local runner_cmd
+    if ! prepare_runner "$problem_dir" "$language" "$work_dir" runner_cmd; then
         return 2
     fi
-
-    echo "编译完成，开始运行测试..."
 
     local pass_count=0
     local fail_count=0
@@ -126,7 +170,7 @@ run_one_problem() {
 
         local run_status=0
         if [[ $use_timeout -eq 1 ]]; then
-            timeout --signal=KILL "${RUN_TIMEOUT_SECONDS}s" "$binary" < "$input_file" > "$actual_file" 2> "$stderr_file"
+            timeout --signal=KILL "${RUN_TIMEOUT_SECONDS}s" "${runner_cmd[@]}" < "$input_file" > "$actual_file" 2> "$stderr_file"
             run_status=$?
             if [[ $run_status -eq 124 ]] || [[ $run_status -eq 137 ]]; then
                 echo "[$case_name] FAIL (运行超时，>${RUN_TIMEOUT_SECONDS}s)"
@@ -134,7 +178,7 @@ run_one_problem() {
                 continue
             fi
         else
-            "$binary" < "$input_file" > "$actual_file" 2> "$stderr_file"
+            "${runner_cmd[@]}" < "$input_file" > "$actual_file" 2> "$stderr_file"
             run_status=$?
         fi
 
@@ -173,29 +217,71 @@ run_one_problem() {
     return 0
 }
 
-if [[ -f "$target_dir/solution.cpp" ]]; then
+if [[ -f "$target_dir/solution.cpp" || -f "$target_dir/solution.py" ]]; then
     run_one_problem "$target_dir"
     exit $?
 fi
 
-# 批量模式：递归发现所有包含 solution.cpp 的子目录，按路径排序依次运行。
-# 用 while read 而非 mapfile 读取，兼容 macOS 自带的 Bash 3.2（无 mapfile 内建命令）。
+# 批量模式：递归发现所有包含解答文件（solution.cpp 或 solution.py）的子目录，按
+# 路径排序依次运行。用 while read 而非 mapfile 读取，兼容 macOS 自带的 Bash 3.2
+# （无 mapfile 内建命令）。
 problem_solutions=()
 while IFS= read -r solution_path; do
     problem_solutions+=("$solution_path")
-done < <(find "$target_dir" -type f -name solution.cpp | sort)
+done < <(find "$target_dir" -type f \( -name solution.cpp -o -name solution.py \) | sort)
 
 if [[ ${#problem_solutions[@]} -eq 0 ]]; then
-    echo "错误: $target_dir 下没有找到任何题目（solution.cpp）" >&2
+    echo "错误: $target_dir 下没有找到任何题目（solution.cpp 或 solution.py）" >&2
     exit 2
 fi
 
-problem_count=${#problem_solutions[@]}
+# 同一题目目录如果 solution.cpp 与 solution.py 都被发现，会各贡献一条路径；按目录
+# 去重，交给 run_one_problem 统一报告“二选一”错误，而不是把同一题目跑两次。不用
+# 关联数组（bash 3.2 不支持），改用线性数组 + 逐一比较。
+problem_dirs=()
+for solution_path in "${problem_solutions[@]}"; do
+    problem_dir=$(dirname "$solution_path")
+    already_seen=0
+    for seen_dir in "${problem_dirs[@]+"${problem_dirs[@]}"}"; do
+        if [[ "$seen_dir" == "$problem_dir" ]]; then
+            already_seen=1
+            break
+        fi
+    done
+    if [[ $already_seen -eq 0 ]]; then
+        problem_dirs+=("$problem_dir")
+    fi
+done
+
+# 提前一次性检查本批次实际会用到的解释器/编译器是否都可用，缺失时立即整体中止
+# 并只报一次错，而不是让每个用到该工具的题目在 prepare_runner 里各报一次重复的
+# “未找到编译器/解释器”错误。
+needs_cxx=0
+needs_python=0
+for problem_dir in "${problem_dirs[@]}"; do
+    problem_language=
+    detect_language "$problem_dir" problem_language
+    case "$problem_language" in
+        cpp) needs_cxx=1 ;;
+        python) needs_python=1 ;;
+    esac
+done
+
+if [[ $needs_cxx -eq 1 ]] && ! command -v "$CXX" >/dev/null 2>&1; then
+    echo "错误: 未找到编译器 $CXX，请先运行 scripts/setup.sh 完成环境初始化。" >&2
+    exit 2
+fi
+
+if [[ $needs_python -eq 1 ]] && ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+    echo "错误: 未找到 Python 解释器 $PYTHON_BIN，请先运行 scripts/setup.sh 完成环境初始化。" >&2
+    exit 2
+fi
+
+problem_count=${#problem_dirs[@]}
 ran_count=0
 failed_problems=()
 
-for solution_path in "${problem_solutions[@]}"; do
-    problem_dir=$(dirname "$solution_path")
+for problem_dir in "${problem_dirs[@]}"; do
     ran_count=$((ran_count + 1))
     echo "=== [$ran_count/$problem_count] $problem_dir ==="
     run_one_problem "$problem_dir"

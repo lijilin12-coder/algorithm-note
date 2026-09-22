@@ -1,0 +1,281 @@
+schema: comet.native.v4
+name: support-python-scripts
+language: zh-CN
+phase: archive
+status: done
+state_version: 17
+brief: brief.md
+shape_confirmation_hash: 5d13a29e7987fdb2c9447c223ca5b8ce4236a029ebdd411b0ca2d9010c33ede8
+spec_changes:
+  - capability: python-language-support
+    operation: create
+    source: specs/python-language-support/spec.md
+workspace:
+  isolation: current
+  change_branch: null
+  target_branch: null
+  finish: null
+loop:
+  stage: done
+  goal_cycle: 1
+  iteration: 2
+  attempt: 2
+  retry_epoch: 0
+  failed_iteration_count: 1
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: null
+acceptance:
+  - id: A1
+    source: brief.md
+    text: A1：新建一个只含 `solution.py`（无 `solution.cpp`）的题目目录，运行 `scripts/run_tests.sh
+      <题目目录>`，脚本自动识别为 Python 题目、跳过编译、直接用 `python3` 运行全部测试用例并逐用例报告
+      PASS/FAIL，输出格式与现有 C++ 单题目模式一致（含通过数汇总）。
+    result: passed
+    reason:
+      text: 新建仅含 solution.py 的题目目录，run_tests.sh 自动识别为 Python、跳过编译、运行全部用例并逐用例报告
+        PASS/FAIL，含通过数汇总，格式与 C++ 单题目模式一致；独立复现验证，并与 tests/run_framework_tests.sh
+        自测 1-4 交叉确认。
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: A2：对一个同时包含 C++ 题目和 Python 题目的分类目录（如
+      `problems/examples`）运行批量测试，两种题目都能被发现并正确运行，任一题目失败即停止并报告是哪个题目失败（沿用已有批量模式的失败即停策略）。
+    result: passed
+    reason:
+      text: 独立构造的混合批量目录（C++/Python 各一 pass 一
+        fail）验证：两种语言均被正确发现并运行，失败题目在结束汇总中被点名，行为与改动前 C++-only
+        版本的“遇失败继续运行、末尾汇总”约定一致（已用 git show HEAD 对比确认非新增行为）；双语言冲突目录在批量中按 1
+        个题目计数并报冲突错误后继续。
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: A3：某道 Python 题目目录中如果 `solution.cpp` 和 `solution.py` 同时存在，运行
+      `scripts/run_tests.sh` 或 `scripts/debug.sh`
+      时明确报错提示“同一题目只能保留一种语言的解答”，不会静默选择其中一个语言运行。
+    result: passed
+    reason:
+      text: run_tests.sh 与 debug.sh 对 both-language-problem 均输出一致的冲突报错并退出码
+        2，单目录与批量场景下均验证通过，逻辑集中于共享的 scripts/lib/problem_language.sh。
+      truncated: false
+  - id: A4
+    source: brief.md
+    text: A4：对一道 Python 题目的某组用例运行 `scripts/debug.sh <题目目录> <用例编号>`，程序以该用例输入作为 stdin
+      启动并进入 `pdb` 交互式调试，可以设置断点、单步执行、查看变量，Linux/WSL 与 macOS 环境下均可用。
+    result: passed
+    reason:
+      text: 通过真实 pty.fork() 交互式驱动 debug.sh 的 pdb 会话：设置断点、continue 命中、变量查看（取自用例输入文件而非
+        tty）、单步执行、正常退出均验证通过；无控制终端时报错路径干净退出、不挂起。
+      truncated: false
+  - id: A5
+    source: brief.md
+    text: A5：在 VS Code 中打开某道 Python 题目的 `solution.py`，使用仓库提供的调试配置按 F5
+      启动，程序以该题目某组测试用例的输入作为 stdin
+      运行并进入图形化调试（打断点、单步、查看变量），如需切换用例只需修改配置中的一个路径字符串（与现有 C++ 调试配置的用例切换方式一致）。
+    result: passed
+    reason:
+      text: 独立复测确认修复有效：debugpy_listen.sh 的就绪探测已改为纯内核状态读取（Linux /proc/net/tcp[6]，macOS
+        lsof），全程无 TCP 连接；readiness 后端口保持可用（含真实 DAP initialize
+        往返验证）；新增的端口占用前置检查、SIGTERM/SIGINT
+        信号退出码（143/130）、清理逻辑均独立验证通过；tasks.json/launch.json 端口与 endsPattern
+        走查一致。VS Code 图形化 F5 端到端会话仍受限于沙盒无 GUI，未做字面点击验证，但其依赖的全部底层机制均已独立验证可靠。
+      truncated: false
+  - id: A6
+    source: brief.md
+    text: A6：新克隆仓库后运行 `scripts/setup.sh`，脚本在检测/安装 C++ 编译器之外，同时检测 `python3`
+      是否可用；macOS 下缺失时给出 Homebrew 安装指引（或自动安装），WSL/Linux 下缺失时给出 apt
+      安装指引（或自动安装）；`python3` 已存在时不重复安装。
+    result: passed
+    reason:
+      text: g++/python3 均已存在时 setup.sh 正确跳过安装分支、报告已找到、退出码 0；代码走查确认 macOS Homebrew 与
+        Linux apt-get 分支彼此独立、一项缺失不阻塞另一项检测/安装，与既有 check_compiler 模式一致。
+      truncated: false
+  - id: A7
+    source: brief.md
+    text: A7：`problems/README.md` 中题目目录约定已更新，明确写出题目可以是 `solution.cpp` 或
+      `solution.py` 二选一，并说明两者同时存在时的报错行为。
+    result: passed
+    reason:
+      text: problems/README.md 已更新，明确写出 solution.cpp/solution.py
+        二选一、不能同时存在，并说明两者同时存在时会报错而非静默选择语言。
+      truncated: false
+builder_handoff:
+  candidate_id: d54d6317-05ff-45e8-9e3b-4a092210bebd
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:48a60a0d-e0bf-4579-8973-6c69efb9cf55
+  iteration: 2
+  summary:
+    text: "修复 A5：scripts/debugpy_listen.sh 的端口就绪探测改为只读取内核监听状态表（Linux:
+      /proc/net/tcp[6]，macOS: lsof），不再对端口发起任何真实 TCP 连接，避免该探测本身被 debugpy
+      误判为客户端已连接并断开、导致 adapter 在 VS Code
+      真正连接前退出。启动前新增端口占用前置检查（端口已被占用时立即报错，不静默复用/误判为就绪），使轮询期间一旦观测到监听状态就必然对应本次启动（同一\
+      端口不会同时有两个监听者），从而绕开 debugpy adapter 子进程会脱离父进程树、无法用 PID 归属校验的问题。另外修复了信号处理
+      trap 缺少显式 exit
+      的问题：取消/终止调试会话时脚本现在会立即以对应信号退出码退出，而不是继续走到轮询循环并最终误报“未能进入监听状态”的启动失败错误。"
+    truncated: false
+  addressed_acceptance_ids:
+    - A5
+  checks:
+    - name:
+        text: 真实客户端连接可靠性：5 次独立重复启动 + 真实 TCP 连接（模拟 VS Code attach），每次均连接成功
+        truncated: false
+      result: passed
+      note: null
+    - name:
+        text: SIGTERM 取消：无残留 debugpy 进程、端口正确释放，脚本以退出码 143 立即退出
+        truncated: false
+      result: passed
+      note: null
+    - name:
+        text: SIGINT 取消：脚本以退出码 130 立即退出，无残留进程
+        truncated: false
+      result: passed
+      note: null
+    - name:
+        text: 轮询中途（DEBUGPY_READY 之前）收到 SIGTERM：脚本约 81ms 内以退出码 143 退出，不再误报“未能进入监听状态”
+        truncated: false
+      result: passed
+      note: null
+    - name:
+        text: 启动前端口已被占用：脚本立即以退出码 2 报出清晰的“端口已被占用”错误，不尝试静默复用
+        truncated: false
+      result: passed
+      note: null
+    - name:
+        text: 真实启动失败（解释器存在但从不监听端口）：约 10 秒后仍能以退出码 2 正确超时报错，无残留进程
+        truncated: false
+      result: passed
+      note: null
+    - name:
+        text: tests/run_framework_tests.sh 全量自测重新运行，确认修复未引入回归
+        truncated: false
+      result: passed
+      note: null
+    - name:
+        text: bash -n 语法检查
+        truncated: false
+      result: passed
+      note: null
+  checks_truncated: false
+  known_limits:
+    - text: 本轮修复只在 Linux/WSL 沙盒环境中实测；macOS 分支（lsof 判断端口监听状态）逻辑上与 Linux 分支对称、同样不做 PID
+        归属过滤，但未在真实 macOS 硬件上跑过。
+      truncated: false
+    - text: 启动前的端口占用前置检查与随后启动 debugpy 之间存在极窄的 TOCTOU
+        窗口（理论上另一进程可能恰好在此期间抢占该端口），视为可接受的残余风险，与任何前置检查类设计一致，未做额外加固。
+      truncated: false
+  known_limits_truncated: false
+  review:
+    status: passed
+    summary:
+      text: 对 scripts/debugpy_listen.sh 运行了一次独立只读代码审查（/code-review
+        medium）。审查发现两个问题并已修复：(1) 最初版本的修复用进程树遍历做 PID 归属校验，但实测发现 debugpy 的 adapter
+        子进程会与本脚本脱离父子关系（daemonize/reparent），进程树校验完全失效（要么永远探测不到真正的监听
+        socket，要么误判端口上残留的孤儿进程为就绪）——已改为“启动前确认端口未被占用”的前置校验思路，从根本上避免了 PID 归属问题；(2)
+        信号 trap 缺少显式 exit，导致取消/终止时脚本会继续执行到轮询循环、最终误报为启动失败——已改为在 INT/TERM 分支中调用
+        cleanup 后显式 exit 对应信号退出码。修复后针对两点分别补充了测试并通过。
+      truncated: false
+    reviewer_execution_ref: "code-review skill run (effort: medium, scope:
+      scripts/debugpy_listen.sh), forked execution"
+  submitted_at: 2026-09-22T10:53:31.410Z
+blockers: []
+verification:
+  candidate_id: d54d6317-05ff-45e8-9e3b-4a092210bebd
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:ea0708c3-0cf8-497f-bf22-d61e2dc131fb
+  iteration: 2
+  attempt: 2
+  assurance: skill-coordinated
+  verdict: pass
+  checks: []
+  summary:
+    text: 最终完整验收：全部 7 项验收项（A1-A7）均独立复核通过，包括本轮修复的 A5（debugpy
+      就绪探测竞态已通过改为纯内核状态读取根本性解决，配套端口占用前置检查与信号处理修复也已验证有效）。未发现新的回归，tests/run_framework_tests.sh
+      全量自测通过。识别到三项非阻塞风险已记录在案，均不影响任何验收项的通过判定。
+    truncated: false
+  risks:
+    - text: run_tests.sh 单题目模式下，编译器缺失检查现在被移到 prepare_runner 内部、在 tests
+        目录存在性检查之后执行；若编译器缺失与 tests
+        目录缺失同时发生这一边缘情况下，报错文案会从“未找到编译器”变为“未找到测试用例目录”，退出码不变，不影响任何一条验收项，但严格按“输出格式保持不变”解读时是一个可留意的微小行为差异。
+      truncated: false
+    - text: scripts/debugpy_listen.sh 依赖 python3 能 import debugpy（需 pip install
+        debugpy），但 setup.sh 不检测/安装该依赖；目前唯一提示只在 launch.json
+        注释里，problems/README.md 和 setup.sh 的输出都没有提及，“新克隆仓库后 setup.sh → F5 调试
+        Python”的用户路径会在 debugpy 缺失时卡住且线索不够显眼。按 brief 决定该依赖检测被明确排除在 setup.sh
+        范围外，此处仅作为可用性风险记录，不视为验收缺陷。
+      truncated: false
+    - text: 本轮独立验证未能在当前沙盒环境（debugpy 1.8.22）下复现最初诊断的“裸连接探测必然杀死监听”竞态（单次与 20
+        次快速连接+断开均未触发），无法实测确认原始故障机制的确切复现条件；但这不影响本次判断，因为新实现已从根本上移除探测路径上的任何网络连接，无论原竞态的精确触发条件为何，修复都是更安全、更正确的方案。
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-09-22T11:08:36.134Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: execution-error
+    unresolved_ids: []
+    summary:
+      text: 本会话是新启动的 /comet 会话，此前派发的 Verifier
+        subagent（skill-coordinated:verifier:6d029d06-1da9-4880-8967-c8d568e8e29c）无法在当前会话中确认其运行状态或结果；已询问同机的另一活跃会话是否为该任务，未获得及时确认，用户明确要求不再等待、立即重新派发新的
+        Verifier。
+      truncated: false
+    completed_at: 2026-09-22T10:28:47.996Z
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 2
+    outcome: execution-error
+    unresolved_ids: []
+    summary:
+      text: "Native Verifier response was invalid: Native Verifier risks must be text
+        entries"
+      truncated: false
+    completed_at: 2026-09-22T10:41:07.377Z
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 3
+    outcome: fail
+    unresolved_ids:
+      - A5
+    summary:
+      text: 7 项验收中 6 项通过（A1-A4、A6、A7），A5 未通过：独立复现证明 scripts/debugpy_listen.sh
+        的端口就绪探测会被 debugpy 误判为客户端已连接并断开，导致监听进程在 VS Code 真正连接前退出，与 builder
+        声称已排除该竞态的结论相反。需要在 Build 阶段修复该就绪探测逻辑（避免探测连接被 debugpy 计为一次真实客户端连接），并重新验证
+        A5。
+      truncated: false
+    completed_at: 2026-09-22T10:41:53.977Z
+  - goal_cycle: 1
+    iteration: 2
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Repair verification passed for A5; final full verification is required.
+      truncated: false
+    completed_at: 2026-09-22T10:58:47.749Z
+  - goal_cycle: 1
+    iteration: 2
+    attempt: 2
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 最终完整验收：全部 7 项验收项（A1-A7）均独立复核通过，包括本轮修复的 A5（debugpy
+        就绪探测竞态已通过改为纯内核状态读取根本性解决，配套端口占用前置检查与信号处理修复也已验证有效）。未发现新的回归，tests/run_framework_tests.sh
+        全量自测通过。识别到三项非阻塞风险已记录在案，均不影响任何验收项的通过判定。
+      truncated: false
+    completed_at: 2026-09-22T11:08:36.134Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: true
+created_at: 2026-09-22T08:14:54.390Z

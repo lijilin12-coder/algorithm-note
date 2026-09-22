@@ -49,6 +49,77 @@ else
 fi
 
 echo ""
+echo "== 自测 3: python-passing-problem 应全部 PASS，命令应返回 0（Python 单题目模式） =="
+output=$("$run_tests" "$fixtures/python-passing-problem" 2>&1)
+exit_code=$?
+echo "$output"
+if [[ $exit_code -ne 0 ]]; then
+    echo "结果: FAILED（期望退出码 0，实际 $exit_code）"
+    overall_fail=1
+elif ! echo "$output" | grep -q "结果: 1/1 通过"; then
+    echo "结果: FAILED（未检测到期望的 1/1 通过汇总）"
+    overall_fail=1
+else
+    echo "结果: OK"
+fi
+
+echo ""
+echo "== 自测 4: python-failing-problem 应检测到 1 个 FAIL，命令应返回非 0（Python） =="
+output=$("$run_tests" "$fixtures/python-failing-problem" 2>&1)
+exit_code=$?
+echo "$output"
+if [[ $exit_code -eq 0 ]]; then
+    echo "结果: FAILED（期望非零退出码，实际 0）"
+    overall_fail=1
+elif ! echo "$output" | grep -q "^\[1\] PASS"; then
+    echo "结果: FAILED（用例 1 应为 PASS，用于验证部分通过场景）"
+    overall_fail=1
+elif ! echo "$output" | grep -q "^\[2\] FAIL"; then
+    echo "结果: FAILED（用例 2 应为 FAIL）"
+    overall_fail=1
+elif ! echo "$output" | grep -q "结果: 1/2 通过"; then
+    echo "结果: FAILED（未检测到期望的 1/2 通过汇总）"
+    overall_fail=1
+else
+    echo "结果: OK"
+fi
+
+echo ""
+echo "== 自测 5: both-language-problem（solution.cpp 与 solution.py 同时存在）应明确报错 =="
+output=$("$run_tests" "$fixtures/both-language-problem" 2>&1)
+exit_code=$?
+echo "$output"
+if [[ $exit_code -eq 0 ]]; then
+    echo "结果: FAILED（期望非零退出码，实际 0）"
+    overall_fail=1
+elif ! echo "$output" | grep -q "二选一"; then
+    echo "结果: FAILED（未检测到二选一的报错提示）"
+    overall_fail=1
+else
+    echo "结果: OK"
+fi
+
+echo ""
+echo "== 自测 6: 混合批量模式（C++ + Python 题目同批次）全部 PASS 应返回 0 =="
+batch_dir=$(mktemp -d)
+trap 'rm -rf "$batch_dir"' EXIT
+cp -R "$fixtures/passing-problem" "$batch_dir/cpp-problem"
+cp -R "$fixtures/python-passing-problem" "$batch_dir/python-problem"
+output=$("$run_tests" "$batch_dir" 2>&1)
+exit_code=$?
+echo "$output"
+if [[ $exit_code -ne 0 ]]; then
+    echo "结果: FAILED（期望退出码 0，实际 $exit_code）"
+    overall_fail=1
+elif ! echo "$output" | grep -q "共运行 2 个题目，全部通过"; then
+    echo "结果: FAILED（未检测到期望的 2 个题目全部通过汇总）"
+    overall_fail=1
+else
+    echo "结果: OK"
+fi
+rm -rf "$batch_dir"
+
+echo ""
 if [[ $overall_fail -eq 0 ]]; then
     echo "框架自测全部通过"
     exit 0
