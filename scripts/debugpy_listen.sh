@@ -9,7 +9,7 @@
 # 是否打印、打印什么样的“正在监听”文本并不稳定，直接探测端口更可靠。
 #
 # 探测就绪状态时只读取本机内核的监听状态（Linux 读 /proc/net/tcp[6]，macOS 用
-# lsof 查询），不会真正发起一次 TCP 连接：实测发现哪怕只是连接后立刻断开、不发
+# lsof 查询，Windows Git Bash 用系统自带的 netstat），不会真正发起一次 TCP 连接：实测发现哪怕只是连接后立刻断开、不发
 # 送任何数据，debugpy 的 --wait-for-client 也会把这次连接当作一次真实客户端
 # attach 并随后退出监听，导致 VS Code 之后再连接时端口已经消失。
 #
@@ -31,7 +31,10 @@
 
 set -uo pipefail
 
-PYTHON_BIN="${PYTHON_BIN:-python3}"
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# resolve_python_bin：Windows 下 python3 不可用时回退到 python。
+source "$script_dir/lib/platform.sh"
+resolve_python_bin
 
 if [[ $# -lt 2 ]]; then
     echo "用法: $0 <solution.py 路径> <用例输入文件路径> [端口]" >&2
@@ -63,6 +66,15 @@ port_has_listener() {
     case "$os_name" in
         Darwin)
             lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            # Windows netstat 的状态列（LISTENING）会随系统语言本地化，改用
+            # “外部地址端口为 0”判断监听状态：只有监听中的 TCP socket 其外部地址
+            # 为 0.0.0.0:0 或 [::]:0（IPv4 与 IPv6 行的协议列都是 TCP）。
+            netstat -an 2>/dev/null | tr -d '\r' | awk -v want=":$port" '
+                $1 == "TCP" && substr($2, length($2) - length(want) + 1) == want && $3 ~ /:0$/ { found = 1 }
+                END { exit !found }
+            '
             ;;
         *)
             local port_hex

@@ -20,6 +20,22 @@
                 "${fileDirname}/solution_debug",
                 "${fileDirname}/solution.cpp"
             ],
+            // Windows（MinGW g++）下输出 .exe，与 launch.json 的
+            // "Debug (Windows - gdb)" 配置对应。路径是反斜杠形式，用 strong
+            // 引用，保证默认终端无论是 PowerShell 还是 Git Bash 都不会被转义。
+            "windows": {
+                "args": [
+                    "-g",
+                    "-O0",
+                    "-std=c++17",
+                    "-Wall",
+                    "-I",
+                    { "value": "${workspaceFolder}/common", "quoting": "strong" },
+                    "-o",
+                    { "value": "${fileDirname}/solution_debug.exe", "quoting": "strong" },
+                    { "value": "${fileDirname}/solution.cpp", "quoting": "strong" }
+                ]
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -47,6 +63,26 @@
                 "${fileDirname}/solution.py",
                 "${fileDirname}/tests/1.in"
             ],
+            // Windows 下 VS Code 默认 shell 是 PowerShell，无法执行 .sh；这里改用
+            // Git for Windows 自带的 bash（默认安装路径，装在别处需改这里）。
+            // ${fileDirname} 在 Windows 上是反斜杠路径，用 strong（单引号）引用
+            // 防止 bash 把反斜杠当转义符吃掉。
+            "windows": {
+                "options": {
+                    "shell": {
+                        "executable": "C:\\Program Files\\Git\\bin\\bash.exe",
+                        "args": ["-c"]
+                    }
+                },
+                "command": {
+                    "value": "${workspaceFolder}/scripts/debugpy_listen.sh",
+                    "quoting": "strong"
+                },
+                "args": [
+                    { "value": "${fileDirname}/solution.py", "quoting": "strong" },
+                    { "value": "${fileDirname}/tests/1.in", "quoting": "strong" }
+                ]
+            },
             "isBackground": true,
             "problemMatcher": {
                 "owner": "python-debugpy-listen",

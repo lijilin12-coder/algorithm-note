@@ -20,8 +20,11 @@
     //     入）。macOS 配置改用 lldb 的 "target.input-path" 设置重定向，未在真实
     //     macOS 环境验证，如遇问题请改用命令行 `scripts/debug.sh` 调试。
     //
-    // 已提供三组配置：
+    // 已提供四组配置：
     //   - "Debug (Linux/WSL - gdb)"：C++ 题目，在 WSL/Linux 下使用 gdb
+    //   - "Debug (Windows - gdb)"：C++ 题目，在原生 Windows 下使用 MSYS2
+    //     MinGW-w64 的 gdb（需先运行 scripts/setup.sh 并把 MinGW bin 目录加入
+    //     PATH）；编译产物为 solution_debug.exe
     //   - "Debug (macOS - lldb)"：C++ 题目，在 macOS 下使用 lldb
     //   - "Debug Python (current problem)"：Python 题目（solution.py），使用
     //     debugpy。用法同上：打开题目的 solution.py 作为当前激活标签页，按 F5。
@@ -48,6 +51,28 @@
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
+            "preLaunchTask": "编译当前题目（调试符号）",
+            "setupCommands": [
+                {
+                    "description": "为 gdb 启用整齐打印",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Debug (Windows - gdb)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${fileDirname}/solution_debug.exe",
+            // Windows 上的 gdb（9.0 起）同样支持 run 参数里的 "<" 重定向 stdin。
+            "args": ["<", "${fileDirname}/tests/1.in"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "gdb.exe",
             "preLaunchTask": "编译当前题目（调试符号）",
             "setupCommands": [
                 {

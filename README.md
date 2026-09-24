@@ -19,7 +19,26 @@ Algorithms-node is a personal note project that notes down the common algorithms
    scripts/run_tests.sh problems/examples/a-plus-b
    ```
 
-支持环境：macOS（通过 Homebrew）与 WSL/Linux（通过 apt）。
+支持环境：macOS（通过 Homebrew）、WSL/Linux（通过 apt）与 Windows（Git Bash，通过 winget）。
+
+### Windows（Git Bash）
+
+1. 安装 [Git for Windows](https://git-scm.com/download/win)，之后的所有命令都在
+   **Git Bash** 中执行（不支持 PowerShell / cmd）。
+2. 确认系统自带 `winget` 可用（Windows 10/11 的“应用安装程序”，可从 Microsoft Store
+   更新）。
+3. 运行 `scripts/setup.sh`：缺少编译器时通过 winget 安装 MSYS2，并在其中安装
+   MinGW-w64 的 g++ 与 gdb；缺少 Python 时通过 winget 安装 Python。
+4. 按脚本提示把 `C:\msys64\ucrt64\bin` 加入 Windows 用户环境变量 `PATH`，然后
+   重新打开 Git Bash 和 VS Code。
+
+如果仓库是在添加 `.gitattributes` 之前就已在 Windows 上克隆的，先执行一次
+`git rm -r --cached -q . && git reset --hard`，把脚本和测试用例重新检出为 LF 行尾。
+
+之后 `scripts/run_tests.sh` 的用法与其他平台完全相同。Windows 上没有 `python3`
+时会自动改用 `python`（也可以用 `PYTHON_BIN` 环境变量指定）；程序输出为 CRLF
+行尾不影响判题。`scripts/debug.sh` 命令行调试暂不支持 Windows，请使用下方的
+VS Code 图形化调试。
 
 ## 批量测试
 
@@ -53,11 +72,15 @@ scripts/run_tests.sh problems            # 运行全部题目
   ```
 
   WSL/Linux 下自动进入 gdb，macOS 下自动进入 lldb；启动后按提示设置断点并运行。
+  （Windows 暂不支持，请使用 VS Code 图形化调试。）
 
 - **VS Code 图形化调试**：打开你要调试的题目的 `solution.cpp`（确保它是当前激活
   的编辑器标签页），设置断点后按 F5 启动即可，调试目标会自动对应到该题目所在文件
   夹，无需手动修改 [.vscode/launch.json](.vscode/launch.json)。
-  WSL/Linux 选择 "Debug (Linux/WSL - gdb)"，macOS 选择 "Debug (macOS - lldb)"。
+  WSL/Linux 选择 "Debug (Linux/WSL - gdb)"，macOS 选择 "Debug (macOS - lldb)"，
+  Windows 选择 "Debug (Windows - gdb)"。Windows 上 Python 题目的调试任务通过
+  Git Bash 运行，要求 Git for Windows 安装在默认路径
+  `C:\Program Files\Git`（否则修改 `.vscode/tasks.json` 中的 bash 路径）。
   默认使用该题目的 `tests/1.in` 作为输入；如需调试其他用例，手动修改
   `launch.json` 中的用例编号（如把 `tests/1.in` 改成 `tests/2.in`）。
 

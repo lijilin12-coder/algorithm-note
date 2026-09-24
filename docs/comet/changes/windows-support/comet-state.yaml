@@ -1,0 +1,303 @@
+schema: comet.native.v4
+name: windows-support
+language: zh-CN
+phase: verify
+status: await-user
+state_version: 6
+brief: brief.md
+shape_confirmation_hash: 804db7bba29670ec1d9c94a3885949b81638ab2963af6986ec648855d2cbdd64
+spec_changes:
+  - capability: windows-support
+    operation: create
+    source: specs/windows-support/spec.md
+workspace:
+  isolation: current
+  change_branch: null
+  target_branch: null
+  finish: null
+loop:
+  stage: await-user
+  goal_cycle: 1
+  iteration: 1
+  attempt: 1
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: confirm-skill-coordinated-pass
+acceptance:
+  - id: A1
+    source: brief.md
+    text: "A1: Git Bash（uname 为 MINGW64_NT-*）下执行 `scripts/run_tests.sh
+      problems/examples/a-plus-b`，C++ 题目编译为 `.exe` 并逐用例输出 PASS，退出码 0。"
+    result: passed
+    reason:
+      text: 用伪造 uname=MINGW64_NT-10.0-19045 并包装 g++ 模拟：C++ 题目以 -o <work>/solution.exe
+        编译，逐用例输出 PASS，退出码 0。
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: "A2: Git Bash 下仅有 `python`（无 `python3`）时，Python 题目无需设置 `PYTHON_BIN`
+      即可运行并判定 PASS/FAIL；显式设置 `PYTHON_BIN` 时优先使用该值。"
+    result: passed
+    reason:
+      text: python3 为无法运行的应用商店占位存根、或 PATH 中没有 python3 时，都会自动回退到 python，并正确判定
+        PASS/FAIL；显式设置 PYTHON_BIN 时优先使用该值。
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: "A3: 程序输出为 CRLF 行尾、或 `.in/.ans` 以 CRLF 检出时，内容相同的用例判定为 PASS。"
+    result: passed
+    reason:
+      text: C++ 程序输出 CRLF，配合 CRLF 的 .in/.ans：内容相同判 PASS、内容不同仍判 FAIL，FAIL 时打印去掉 CR
+        后的内容。实现先用 tr -d '\r' 去掉 CR，再做 diff -b -B。
+      truncated: false
+  - id: A4
+    source: brief.md
+    text: "A4: Git Bash 下批量模式 `scripts/run_tests.sh problems` 能递归发现并运行 C++ 与 Python
+      题目，失败题目的汇总与退出码行为和 Linux 一致。"
+    result: passed
+    reason:
+      text: Windows 模拟下批量运行（嵌套目录，C++ 与 Python 混合，含失败题目）：递归发现、失败后跳过继续、汇总文案和退出码 1 都与
+        Linux 下同一批次一致。
+      truncated: false
+  - id: A5
+    source: brief.md
+    text: "A5: Git Bash 下超时（`RUN_TIMEOUT_SECONDS`）机制生效；环境缺少 `timeout`
+      时不超时直接运行，不报错中断。"
+    result: passed
+    reason:
+      text: 有 timeout 时超时题目约 1s 被判为超时 FAIL；在 PATH 中剔除 timeout 并伪造 MINGW uname
+        后，不启用超时、直接运行并 PASS，没有报错中断。
+      truncated: false
+  - id: A6
+    source: brief.md
+    text: "A6: Git Bash 下执行 `scripts/setup.sh`：g++ 与 Python 已存在则只报告版本；缺失时通过 winget
+      安装 MSYS2/MinGW-w64 工具链与 Python，并提示需要把 MinGW `bin` 目录加入 PATH / 重开终端；winget
+      不存在时报错说明手动安装方法；两项仍不可用时以非 0 退出。"
+    result: passed
+    reason:
+      text: 用 winget、MSYS2 存根模拟四种场景：已存在时只报告版本、退出 0；缺失时通过 winget 安装并以 MSYSTEM=UCRT64 调用
+        pacman，同时提示设置 PATH 并重开终端；没有 winget 时报错并给出手动安装说明；仍不可用时退出码 1。
+      truncated: false
+  - id: A7
+    source: brief.md
+    text: 'A7: 在 Windows 上用 VS Code 打开某题 `solution.cpp` 按 F5，选择 "Debug (Windows -
+      gdb)" 配置：自动以调试符号编译为 `solution_debug.exe`，以 `tests/1.in` 作为 stdin 启动 gdb
+      调试。'
+    result: passed
+    reason:
+      text: 审查结论：cppdbg + gdb.exe，program 为 solution_debug.exe，args 用 < tests/1.in 重定向
+        stdin，preLaunchTask 在 windows 覆盖中以 -g -O0 编译出 .exe，路径用 strong 引用，JSON
+        解析正常，未发现具体缺陷。
+      truncated: false
+  - id: A8
+    source: brief.md
+    text: 'A8: 在 Windows 上打开某题 `solution.py` 按 F5，"Debug Python (current problem)"
+      的前置任务在 Git Bash 中启动 debugpy 监听并成功 attach。'
+    result: passed
+    reason:
+      text: 审查结论：windows 覆盖用 Git Bash 的 bash.exe -c 执行 debugpy_listen.sh，路径用 strong
+        引用；脚本 Windows 分支用 netstat 按外部地址 :0 判断监听，与系统语言无关，已通过本地化 netstat 存根测试。
+      truncated: false
+  - id: A9
+    source: brief.md
+    text: "A9: Windows 检出（`core.autocrlf=true`）后 `scripts/*.sh`、`tests/*.sh` 保持 LF
+      行尾，Git Bash 可直接执行。"
+    result: passed
+    reason:
+      text: git check-attr 显示 *.sh、*.in、*.ans 均为 eol=lf；以 core.autocrlf=true
+        克隆的临时仓库中，.sh 与测试用例都没有 CR，而其他文本文件转成了 CRLF，说明检出规则生效。
+      truncated: false
+  - id: A10
+    source: brief.md
+    text: "A10: README 写明 Windows（Git Bash）为支持环境，包含前置依赖（Git for
+      Windows、winget）与使用方式，并说明 debug.sh 暂不支持 Windows。"
+    result: passed
+    reason:
+      text: README 写明支持 Windows（Git Bash），列出 Git for Windows 与 winget 前置依赖、setup
+        步骤、PATH 设置和旧克隆的重新规范化方法，并说明 debug.sh 暂不支持 Windows、可改用 VS Code F5。
+      truncated: false
+  - id: A11
+    source: brief.md
+    text: "A11: macOS 与 WSL/Linux 上现有行为不变：`tests/run_framework_tests.sh` 在 Linux
+      上全部通过。"
+    result: passed
+    reason:
+      text: 在临时副本中重跑 tests/run_framework_tests.sh，自测 1–13 全部 OK、退出码 0；所有脚本 bash -n
+        通过；Linux 下原有行为未变。
+      truncated: false
+builder_handoff:
+  candidate_id: f951e878-fdaa-4b6e-bb57-09ab35adcfc5
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:50fe95d8-e2ce-4fb9-82c9-0970526da7da
+  iteration: 1
+  summary:
+    text: 新增
+      scripts/lib/platform.sh（is_windows_shell/exe_suffix/resolve_python_bin）；run_tests.sh
+      在 Windows 下编译为 .exe、Python 解释器 python3→python 回退、比对前去除 CR；setup.sh 新增
+      MINGW/MSYS/CYGWIN 分支，通过 winget 安装 MSYS2 并用 pacman 装 ucrt64 gcc/gdb、winget
+      装 Python，无 winget 时给出手动安装说明，check_python 改为实际运行解释器；debugpy_listen.sh 在
+      Windows 下用 netstat（按外部地址 :0 判断监听，不依赖本地化状态列）；launch.json 新增 Debug (Windows
+      - gdb)，tasks.json 编译任务 windows 输出 solution_debug.exe、Python debugpy 任务
+      windows 下经 Git Bash（strong quoting）执行；新增 .gitattributes（*.sh/*.in/*.ans
+      eol=lf）；README 增加 Windows 章节；tests/run_framework_tests.sh 新增自测 7–13 模拟
+      Windows。 已根据独立只读评审修复：Windows 编译任务参数 strong 引用、pacman 先 -Syu 且
+      MSYSTEM=UCRT64、winget Python 加 PrependPath=1、PYTHON_BIN 延迟到遇到 Python
+      题目时解析并排除 Python 2、失败输出展示去除 CR、README 补充旧克隆重新检出 LF 的说明。
+    truncated: false
+  addressed_acceptance_ids:
+    - A1
+    - A2
+    - A3
+    - A4
+    - A5
+    - A6
+    - A7
+    - A8
+    - A9
+    - A10
+    - A11
+  checks:
+    - name:
+        text: tests/run_framework_tests.sh
+        truncated: false
+      result: passed
+      note:
+        text: 13/13 通过（含 Windows 模拟 7–13）
+        truncated: false
+    - name:
+        text: scripts/run_tests.sh problems 前后对比
+        truncated: false
+      result: passed
+      note:
+        text: 改动前后失败题目列表完全一致（54/69 为未完成练习题，基线即失败）
+        truncated: false
+    - name:
+        text: bash -n 所有修改脚本 + .vscode JSONC 解析
+        truncated: false
+      result: passed
+      note: null
+    - name:
+        text: 真实 Windows 环境运行
+        truncated: false
+      result: not-run
+      note:
+        text: 开发环境为 Linux，已按确认的 Shape 以模拟与配置审查代替
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: Windows 行为只在 Linux 上通过伪造 uname/PATH/netstat 模拟验证；VS Code Windows
+        配置（A7/A8）仅能审查，未真实运行。
+      truncated: false
+    - text: GNU diff -b 本身已忽略行尾 CR，因此自测 9 在旧脚本上也会通过；新增的 tr -d '\r' 针对非 GNU
+        diff，并让失败时展示的输出不含 CR。
+      truncated: false
+    - text: tasks.json 中 Git Bash 路径固定为默认安装位置 C:\Program Files\Git\bin\bash.exe，README
+        已说明。
+      truncated: false
+    - text: launch.json 的 Windows gdb stdin 重定向（含空格/反斜杠路径）需在真实 Windows 上手动确认。
+      truncated: false
+  known_limits_truncated: false
+  review:
+    status: passed
+    summary:
+      text: 独立只读评审结论 passed，无阻塞问题；8 项 minor 中 1/2/3/5/6/7/8 已修复，4（Windows gdb
+        重定向）列为已知限制待真实环境验证。
+      truncated: false
+    reviewer_execution_ref: subagent:ad88320922621f60b
+  submitted_at: 2026-09-24T14:50:13.642Z
+blockers:
+  - owner: user
+    reason:
+      text: The generic Skill bridge cannot prove an independent Verifier execution;
+        user confirmation is required before Archive.
+      truncated: false
+    acceptance_ids: []
+    resolution_action: await-user
+verification:
+  candidate_id: f951e878-fdaa-4b6e-bb57-09ab35adcfc5
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:195756ff-0acf-4f02-93c6-855a4a4f72be
+  iteration: 1
+  attempt: 1
+  assurance: skill-coordinated
+  verdict: pass
+  checks:
+    - id: framework-tests
+      name:
+        text: 框架自测（含 Windows 模拟 7-13）
+        truncated: false
+      argv_display:
+        - text: tests/run_framework_tests.sh
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 8367
+    - id: bash-syntax
+      name:
+        text: 脚本语法检查
+        truncated: false
+      argv_display:
+        - text: -c
+          truncated: false
+        - text: for f in scripts/*.sh scripts/lib/*.sh tests/*.sh; do bash -n "$f" || exit
+            1; done
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 24
+  summary:
+    text: 在 Linux 上用伪造 uname、python3 存根、去掉 timeout 的 PATH、CRLF 用例、winget/MSYS2 存根和
+      autocrlf=true 克隆，逐项复现了 A1–A6、A9、A11，结果全部符合预期；A7、A8
+      按约定只做配置审查，未发现缺陷。主要剩余风险是没有真实 Windows 环境验证。
+    truncated: false
+  risks:
+    - text: 未在真实 Windows 上运行：MSYS 路径转换、timeout 能否 KILL 原生 exe、Git Bash 的 kill 能否终止原生
+        debugpy 进程，都只停留在推断，没有实测。
+      truncated: false
+    - text: A7：cpptools 在 Windows 上把 "<" 加反斜杠路径交给 gdb 重定向，对含空格的路径是否可靠尚未验证；gdb.exe 依赖
+        PATH 中有 MinGW bin。
+      truncated: false
+    - text: A8：Git Bash 路径写死为 C:\Program Files\Git\bin\bash.exe，装在其他位置需要手改（README
+        已说明）。
+      truncated: false
+    - text: CRLF 自测（自测 9）在旧脚本上也能通过（GNU diff -b 本来就忽略行尾 CR），区分力有限。
+      truncated: false
+    - text: 全新 MSYS2 上如需第二次 pacman -Syu，后续 -S 可能失败，需要用户重跑 setup。
+      truncated: false
+    - text: README 中的示例 problems/examples/a-plus-b 在仓库中不存在（本次变更之前就有的问题）。
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-09-24T14:54:45.043Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 在 Linux 上用伪造 uname、python3 存根、去掉 timeout 的 PATH、CRLF 用例、winget/MSYS2 存根和
+        autocrlf=true 克隆，逐项复现了 A1–A6、A9、A11，结果全部符合预期；A7、A8
+        按约定只做配置审查，未发现缺陷。主要剩余风险是没有真实 Windows 环境验证。
+      truncated: false
+    completed_at: 2026-09-24T14:54:45.043Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: false
+created_at: 2026-09-24T14:34:16.486Z

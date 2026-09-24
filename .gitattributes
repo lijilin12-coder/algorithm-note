@@ -1,0 +1,6 @@
+# Windows 上 Git 默认 core.autocrlf=true 会把文本文件检出为 CRLF：bash 脚本带 CR
+# 会在 Git Bash 中执行失败，测试用例带 CR 会让逐行读取的解答读到多余的 '\r'。
+# 这些文件在所有平台统一使用 LF。
+*.sh  text eol=lf
+*.in  text eol=lf
+*.ans text eol=lf

@@ -33,6 +33,8 @@ common_dir="$repo_root/common"
 # detect_language / language_conflict_message / language_missing_message：
 # 与 scripts/debug.sh 共用同一份语言判定逻辑和报错文案。
 source "$script_dir/lib/problem_language.sh"
+# is_windows_shell / exe_suffix / resolve_python_bin：平台差异（Windows Git Bash）。
+source "$script_dir/lib/platform.sh"
 
 usage() {
     echo "用法: $0 <题目目录>" >&2
@@ -53,7 +55,8 @@ if [[ ! -d "$target_dir" ]]; then
 fi
 
 CXX="${CXX:-g++}"
-PYTHON_BIN="${PYTHON_BIN:-python3}"
+# PYTHON_BIN 在确实遇到 Python 题目时才由 resolve_python_bin 确定，避免纯 C++
+# 运行也去启动一次解释器。
 RUN_TIMEOUT_SECONDS="${RUN_TIMEOUT_SECONDS:-1}"
 echo "RUN_TIMEOUT_SECONDS: ${RUN_TIMEOUT_SECONDS}"
 
@@ -84,7 +87,8 @@ prepare_runner() {
                 echo "错误: 未找到编译器 $CXX，请先运行 scripts/setup.sh 完成环境初始化。" >&2
                 return 2
             fi
-            local binary="$work_dir/solution"
+            local binary
+            binary="$work_dir/solution$(exe_suffix)"
             echo "正在编译 $problem_dir/solution.cpp ..."
             if ! "$CXX" -O2 -std=c++17 -Wall -I "$common_dir" -o "$binary" "$problem_dir/solution.cpp" 2> "$work_dir/compile.log"; then
                 echo "编译失败:" >&2
@@ -95,6 +99,7 @@ prepare_runner() {
             eval "$__runner_var=(\"\$binary\")"
             ;;
         python)
+            resolve_python_bin
             if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
                 echo "错误: 未找到 Python 解释器 $PYTHON_BIN，请先运行 scripts/setup.sh 完成环境初始化。" >&2
                 return 2
@@ -191,13 +196,18 @@ run_one_problem() {
             continue
         fi
 
-        if diff -q -b -B "$actual_file" "$expected_file" > /dev/null 2>&1; then
+        # 比对前去掉 CR：Windows 下程序输出或 Git 检出的 .ans 可能是 CRLF 行尾，
+        # 与 LF 内容应视为相同。不用 diff --strip-trailing-cr，macOS 自带 diff
+        # 不一定支持。
+        tr -d '\r' < "$actual_file" > "$actual_file.lf"
+        tr -d '\r' < "$expected_file" > "$actual_file.ans.lf"
+        if diff -q -b -B "$actual_file.lf" "$actual_file.ans.lf" > /dev/null 2>&1; then
             echo "[$case_name] PASS"
             pass_count=$((pass_count + 1))
         else
             echo "[$case_name] FAIL"
-            print_block "期望输出" "$expected_file"
-            print_block "实际输出" "$actual_file"
+            print_block "期望输出" "$actual_file.ans.lf"
+            print_block "实际输出" "$actual_file.lf"
             fail_count=$((fail_count + 1))
         fi
     done
@@ -270,6 +280,10 @@ done
 if [[ $needs_cxx -eq 1 ]] && ! command -v "$CXX" >/dev/null 2>&1; then
     echo "错误: 未找到编译器 $CXX，请先运行 scripts/setup.sh 完成环境初始化。" >&2
     exit 2
+fi
+
+if [[ $needs_python -eq 1 ]]; then
+    resolve_python_bin
 fi
 
 if [[ $needs_python -eq 1 ]] && ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
