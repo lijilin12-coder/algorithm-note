@@ -21,8 +21,9 @@
 
 - Windows（Git Bash）分支：
   - g++ / Python 已存在：跳过安装，报告版本（与其他平台一致）。
-  - 缺失且 `winget` 可用：通过 winget 安装 MSYS2，并在 MSYS2 中安装 MinGW-w64 g++ 与 gdb 工具链；通过 winget 安装 Python。安装后提示用户把 MinGW `bin` 目录加入 PATH 并重新打开终端。
+  - 缺失且 `winget` 可用：通过 winget 安装 MSYS2，并在 MSYS2 中安装 MinGW-w64 g++ 与 gdb 工具链；通过 winget 安装 Python。安装后提示用户重新打开终端 / VS Code。
   - 缺失且 `winget` 不可用：报错，说明需要手动安装的软件和获取方式。
+  - 用户 PATH：MinGW `bin` 目录（`$MSYS2_ROOT/ucrt64/bin`，默认 `C:\msys64\ucrt64\bin`）存在且不在 Windows 用户 PATH 中时，setup 将其追加到用户 PATH 末尾并持久生效（新打开的终端与 VS Code 可见），同时提示需重新打开终端 / VS Code。不修改系统 PATH，不删除或重排已有条目，不需要管理员权限。已存在（不区分大小写、忽略末尾反斜杠）时不重复添加；目录不存在时不修改 PATH。写入失败时输出手动添加说明，不影响退出码判定。
 - 编译器与 Python 两项检测彼此独立；两项均可用才报告初始化完成，否则以非 0 退出。
 
 ## VS Code 集成

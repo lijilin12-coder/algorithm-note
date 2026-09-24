@@ -3,9 +3,9 @@ name: windows-support
 language: zh-CN
 phase: verify
 status: await-user
-state_version: 6
+state_version: 15
 brief: brief.md
-shape_confirmation_hash: 804db7bba29670ec1d9c94a3885949b81638ab2963af6986ec648855d2cbdd64
+shape_confirmation_hash: 6663084d6c535379e5fb92f0747b98a16fb5b40fd8105fa020a52e536aa89bf5
 spec_changes:
   - capability: windows-support
     operation: create
@@ -17,7 +17,7 @@ workspace:
   finish: null
 loop:
   stage: await-user
-  goal_cycle: 1
+  goal_cycle: 3
   iteration: 1
   attempt: 1
   retry_epoch: 0
@@ -33,8 +33,12 @@ acceptance:
       problems/examples/a-plus-b`，C++ 题目编译为 `.exe` 并逐用例输出 PASS，退出码 0。"
     result: passed
     reason:
-      text: 用伪造 uname=MINGW64_NT-10.0-19045 并包装 g++ 模拟：C++ 题目以 -o <work>/solution.exe
-        编译，逐用例输出 PASS，退出码 0。
+      text: (brief A1) run_tests.sh names the binary solution$(exe_suffix);
+        platform.sh returns .exe for MINGW*/MSYS*/CYGWIN*; compile flags
+        unchanged. Framework test 7 failed in WSL only because g++ is missing,
+        identical to the HEAD baseline; judged passed under the agreed
+        Linux-simulation plus config-review approach and the cycle-1 pass with
+        real g++. Unchanged in this diff.
       truncated: false
   - id: A2
     source: brief.md
@@ -42,16 +46,18 @@ acceptance:
       即可运行并判定 PASS/FAIL；显式设置 `PYTHON_BIN` 时优先使用该值。"
     result: passed
     reason:
-      text: python3 为无法运行的应用商店占位存根、或 PATH 中没有 python3 时，都会自动回退到 python，并正确判定
-        PASS/FAIL；显式设置 PYTHON_BIN 时优先使用该值。
+      text: (brief A2) resolve_python_bin keeps an explicit PYTHON_BIN, otherwise
+        actually runs python3 then python, rejecting Store stubs and Python 2.
+        Framework test 8 OK in WSL.
       truncated: false
   - id: A3
     source: brief.md
     text: "A3: 程序输出为 CRLF 行尾、或 `.in/.ans` 以 CRLF 检出时，内容相同的用例判定为 PASS。"
     result: passed
     reason:
-      text: C++ 程序输出 CRLF，配合 CRLF 的 .in/.ans：内容相同判 PASS、内容不同仍判 FAIL，FAIL 时打印去掉 CR
-        后的内容。实现先用 tr -d '\r' 去掉 CR，再做 diff -b -B。
+      text: (brief A3) run_tests.sh strips CR from actual output and .ans before diff
+        -b -B; .gitattributes sets *.in/*.ans eol=lf. Framework test 9 OK in
+        WSL.
       truncated: false
   - id: A4
     source: brief.md
@@ -59,8 +65,10 @@ acceptance:
       题目，失败题目的汇总与退出码行为和 Linux 一致。"
     result: passed
     reason:
-      text: Windows 模拟下批量运行（嵌套目录，C++ 与 Python 混合，含失败题目）：递归发现、失败后跳过继续、汇总文案和退出码 1 都与
-        Linux 下同一批次一致。
+      text: (brief A4) Batch discovery, skip-on-failure, summary and exit code are
+        platform-neutral and unchanged in this diff; tests 6/7 failed only
+        because g++ is missing, same as baseline; judged passed on code review
+        and cycle-1 evidence.
       truncated: false
   - id: A5
     source: brief.md
@@ -68,146 +76,172 @@ acceptance:
       时不超时直接运行，不报错中断。"
     result: passed
     reason:
-      text: 有 timeout 时超时题目约 1s 被判为超时 FAIL；在 PATH 中剔除 timeout 并伪造 MINGW uname
-        后，不启用超时、直接运行并 PASS，没有报错中断。
+      text: (brief A5) Timeout is used only when RUN_TIMEOUT_SECONDS is a positive
+        integer and timeout exists; otherwise the problem runs directly. Test 10
+        failed only because of g++ (baseline-identical); passed with real g++ in
+        cycle 1.
       truncated: false
   - id: A6
     source: brief.md
     text: "A6: Git Bash 下执行 `scripts/setup.sh`：g++ 与 Python 已存在则只报告版本；缺失时通过 winget
-      安装 MSYS2/MinGW-w64 工具链与 Python，并提示需要把 MinGW `bin` 目录加入 PATH / 重开终端；winget
+      安装 MSYS2/MinGW-w64 工具链与 Python，并提示重开终端 / VS Code；winget
       不存在时报错说明手动安装方法；两项仍不可用时以非 0 退出。"
     result: passed
     reason:
-      text: 用 winget、MSYS2 存根模拟四种场景：已存在时只报告版本、退出 0；缺失时通过 winget 安装并以 MSYSTEM=UCRT64 调用
-        pacman，同时提示设置 PATH 并重开终端；没有 winget 时报错并给出手动安装说明；仍不可用时退出码 1。
+      text: (brief A6) Windows branch reports versions when tools exist, installs
+        MSYS2 plus ucrt64 gcc/gdb and Python via winget/pacman when missing, and
+        now prints the agreed reopen Git Bash / VS Code hint; without winget
+        prints manual steps to stderr; exits 1 unless both tools are available.
+        Test 12 (winget stripped from PATH) OK in WSL; test 11 failed only
+        because of g++ and now also asserts no PATH message.
       truncated: false
   - id: A7
+    source: brief.md
+    text: "A12: Git Bash 下执行 `scripts/setup.sh`，只要 MinGW `bin` 目录（默认
+      `C:\\msys64\\ucrt64\\bin`，随 `MSYS2_ROOT` 变化）存在且不在 Windows 用户 PATH
+      中，就把它追加到用户 PATH 末尾（持久生效，不改系统 PATH，不删除或重排已有条目）并提示重开终端 / VS Code；已在用户 PATH
+      中时不重复添加；写入失败时输出手动添加说明，不改变退出码判定。"
+    result: passed
+    reason:
+      text: (brief A12, auto user PATH) ensure_windows_user_path runs on every
+        Windows-branch run, returns early when $MSYS2_ROOT/ucrt64/bin is
+        missing, and runs an inline PowerShell script that reads the raw user
+        Environment Path, matches entries case-insensitively ignoring a trailing
+        backslash (raw and expanded), appends only at the end, writes back as
+        ExpandString, and broadcasts WM_SETTINGCHANGE; never touches the system
+        PATH or reorders entries. added prints the reopen hint, present prints
+        nothing, anything else prints manual steps without changing the exit
+        code. New framework test 14 OK in WSL (missing dir, add, idempotent
+        rerun, failure fallback).
+      truncated: false
+  - id: A8
     source: brief.md
     text: 'A7: 在 Windows 上用 VS Code 打开某题 `solution.cpp` 按 F5，选择 "Debug (Windows -
       gdb)" 配置：自动以调试符号编译为 `solution_debug.exe`，以 `tests/1.in` 作为 stdin 启动 gdb
       调试。'
     result: passed
     reason:
-      text: 审查结论：cppdbg + gdb.exe，program 为 solution_debug.exe，args 用 < tests/1.in 重定向
-        stdin，preLaunchTask 在 windows 覆盖中以 -g -O0 编译出 .exe，路径用 strong 引用，JSON
-        解析正常，未发现具体缺陷。
+      text: "(brief A7, VS Code gdb) Config review as agreed: Debug (Windows - gdb)
+        uses cppdbg with solution_debug.exe, stdin from tests/1.in, gdb.exe, and
+        a preLaunchTask that compiles with -g -O0 to .exe using strong quoting.
+        Unchanged in this diff."
       truncated: false
-  - id: A8
+  - id: A9
     source: brief.md
     text: 'A8: 在 Windows 上打开某题 `solution.py` 按 F5，"Debug Python (current problem)"
       的前置任务在 Git Bash 中启动 debugpy 监听并成功 attach。'
     result: passed
     reason:
-      text: 审查结论：windows 覆盖用 Git Bash 的 bash.exe -c 执行 debugpy_listen.sh，路径用 strong
-        引用；脚本 Windows 分支用 netstat 按外部地址 :0 判断监听，与系统语言无关，已通过本地化 netstat 存根测试。
+      text: "(brief A8, VS Code debugpy) Config review as agreed: the Windows task
+        override runs debugpy_listen.sh through Git Bash with strong-quoted
+        args; the netstat-based listener check handles localized output (test 13
+        OK); DEBUGPY_READY matches the endsPattern. Unchanged in this diff."
       truncated: false
-  - id: A9
+  - id: A10
     source: brief.md
     text: "A9: Windows 检出（`core.autocrlf=true`）后 `scripts/*.sh`、`tests/*.sh` 保持 LF
       行尾，Git Bash 可直接执行。"
     result: passed
     reason:
-      text: git check-attr 显示 *.sh、*.in、*.ans 均为 eol=lf；以 core.autocrlf=true
-        克隆的临时仓库中，.sh 与测试用例都没有 CR，而其他文本文件转成了 CRLF，说明检出规则生效。
+      text: (brief A9) .gitattributes sets *.sh, *.in and *.ans to eol=lf; git
+        ls-files --eol on this Windows checkout shows lf for the scripts; README
+        documents re-checkout for older clones.
       truncated: false
-  - id: A10
+  - id: A11
     source: brief.md
     text: "A10: README 写明 Windows（Git Bash）为支持环境，包含前置依赖（Git for
       Windows、winget）与使用方式，并说明 debug.sh 暂不支持 Windows。"
     result: passed
     reason:
-      text: README 写明支持 Windows（Git Bash），列出 Git for Windows 与 winget 前置依赖、setup
-        步骤、PATH 设置和旧克隆的重新规范化方法，并说明 debug.sh 暂不支持 Windows、可改用 VS Code F5。
+      text: (brief A10) README lists Windows (Git Bash) as supported, with the Git for
+        Windows and winget prerequisites, the automatic user-PATH step with its
+        skip and manual fallback, the python fallback, CRLF handling, and says
+        debug.sh is not supported on Windows.
       truncated: false
-  - id: A11
+  - id: A12
     source: brief.md
     text: "A11: macOS 与 WSL/Linux 上现有行为不变：`tests/run_framework_tests.sh` 在 Linux
       上全部通过。"
     result: passed
     reason:
-      text: 在临时副本中重跑 tests/run_framework_tests.sh，自测 1–13 全部 OK、退出码 0；所有脚本 bash -n
-        通过；Linux 下原有行为未变。
+      text: (brief A11) Darwin and Linux branches of setup.sh are unchanged; the new
+        code runs only in the Windows branch, and the test isolation affects
+        only the Windows-simulation tests. In WSL every compiler-free test
+        passed and the failing set (1,2,6,7,10,11) is exactly the HEAD
+        baseline's in the same g++-less environment, so there is no regression.
       truncated: false
 builder_handoff:
-  candidate_id: f951e878-fdaa-4b6e-bb57-09ab35adcfc5
+  candidate_id: 2df071c0-906a-473f-8767-98cff59671d3
   identity_provider: skill-coordinated
-  builder_execution_ref: skill-coordinated:builder:50fe95d8-e2ce-4fb9-82c9-0970526da7da
+  builder_execution_ref: skill-coordinated:builder:25f0db30-fd94-4d33-8d42-f5530b9f8745
   iteration: 1
   summary:
-    text: 新增
-      scripts/lib/platform.sh（is_windows_shell/exe_suffix/resolve_python_bin）；run_tests.sh
-      在 Windows 下编译为 .exe、Python 解释器 python3→python 回退、比对前去除 CR；setup.sh 新增
-      MINGW/MSYS/CYGWIN 分支，通过 winget 安装 MSYS2 并用 pacman 装 ucrt64 gcc/gdb、winget
-      装 Python，无 winget 时给出手动安装说明，check_python 改为实际运行解释器；debugpy_listen.sh 在
-      Windows 下用 netstat（按外部地址 :0 判断监听，不依赖本地化状态列）；launch.json 新增 Debug (Windows
-      - gdb)，tasks.json 编译任务 windows 输出 solution_debug.exe、Python debugpy 任务
-      windows 下经 Git Bash（strong quoting）执行；新增 .gitattributes（*.sh/*.in/*.ans
-      eol=lf）；README 增加 Windows 章节；tests/run_framework_tests.sh 新增自测 7–13 模拟
-      Windows。 已根据独立只读评审修复：Windows 编译任务参数 strong 引用、pacman 先 -Syu 且
-      MSYSTEM=UCRT64、winget Python 加 PrependPath=1、PYTHON_BIN 延迟到遇到 Python
-      题目时解析并排除 Python 2、失败输出展示去除 CR、README 补充旧克隆重新检出 LF 的说明。
+    text: "setup.sh: new ensure_windows_user_path (called in the MINGW/MSYS/CYGWIN
+      branch on every run) appends $MSYS2_ROOT/ucrt64/bin to the Windows USER
+      PATH via an inline PowerShell script: reads the HKCU Environment Path
+      value raw (DoNotExpandEnvironmentNames), matches existing entries
+      case-insensitively ignoring a trailing backslash (raw and expanded),
+      appends at the end, writes back as REG_EXPAND_SZ, broadcasts
+      WM_SETTINGCHANGE via a temporary user variable; silent when already
+      present, no-op when the dir is missing, manual instructions on failure
+      without affecting the exit code. POWERSHELL_BIN is overridable (tests);
+      SETUP_USER_ENV_KEY points the script at a test registry key.
+      install_windows_toolchain hint now says reopen terminal / VS Code. README
+      Windows steps updated. tests/run_framework_tests.sh: the
+      Windows-simulation section exports MSYS2_ROOT/POWERSHELL_BIN stubs so
+      tests never touch the real registry; test 11 asserts no PATH message; test
+      12 strips winget from PATH; new test 14 covers missing dir, added,
+      idempotent rerun and failure fallback. brief/spec updated with D4/A12 and
+      the A6 hint change."
     truncated: false
   addressed_acceptance_ids:
-    - A1
-    - A2
-    - A3
-    - A4
-    - A5
     - A6
-    - A7
-    - A8
-    - A9
     - A10
     - A11
+    - A12
   checks:
     - name:
-        text: tests/run_framework_tests.sh
+        text: tests/run_framework_tests.sh in WSL Ubuntu
         truncated: false
       result: passed
       note:
-        text: 13/13 通过（含 Windows 模拟 7–13）
+        text: Tests 3,4,5,8,9,12,13,14 OK. Tests 1,2,6,7,10,11 fail only because WSL
+          Ubuntu has no g++ (sudo needs a password); the HEAD baseline fails
+          exactly the same set.
         truncated: false
     - name:
-        text: scripts/run_tests.sh problems 前后对比
+        text: Real PowerShell logic against a temporary HKCU registry key on Windows
         truncated: false
       result: passed
       note:
-        text: 改动前后失败题目列表完全一致（54/69 为未完成练习题，基线即失败）
+        text: append, idempotent rerun, case/trailing-backslash match, %USERPROFILE%
+          preserved and ExpandString kept, empty key, PowerShell error and
+          missing powershell fallback.
         truncated: false
     - name:
-        text: bash -n 所有修改脚本 + .vscode JSONC 解析
+        text: bash -n on all scripts
         truncated: false
       result: passed
       note: null
-    - name:
-        text: 真实 Windows 环境运行
-        truncated: false
-      result: not-run
-      note:
-        text: 开发环境为 Linux，已按确认的 Shape 以模拟与配置审查代替
-        truncated: false
   checks_truncated: false
   known_limits:
-    - text: Windows 行为只在 Linux 上通过伪造 uname/PATH/netstat 模拟验证；VS Code Windows
-        配置（A7/A8）仅能审查，未真实运行。
+    - text: Framework suite is not fully green in this environment because no g++ is
+        installed in WSL or Windows; those failures are pre-existing and
+        environment-caused.
       truncated: false
-    - text: GNU diff -b 本身已忽略行尾 CR，因此自测 9 在旧脚本上也会通过；新增的 tr -d '\r' 针对非 GNU
-        diff，并让失败时展示的输出不含 CR。
-      truncated: false
-    - text: tasks.json 中 Git Bash 路径固定为默认安装位置 C:\Program Files\Git\bin\bash.exe，README
-        已说明。
-      truncated: false
-    - text: launch.json 的 Windows gdb stdin 重定向（含空格/反斜杠路径）需在真实 Windows 上手动确认。
+    - text: The real user Environment key write and WM_SETTINGCHANGE broadcast were
+        not exercised on the user's real PATH (only on a temporary key).
       truncated: false
   known_limits_truncated: false
   review:
     status: passed
     summary:
-      text: 独立只读评审结论 passed，无阻塞问题；8 项 minor 中 1/2/3/5/6/7/8 已修复，4（Windows gdb
-        重定向）列为已知限制待真实环境验证。
+      text: "Independent read-only review: first pass found tests 11/12 could write
+        the real user PATH (blocking) plus minor issues; all fixed and the
+        re-review passed. The pre-existing test 12 winget risk was also fixed."
       truncated: false
-    reviewer_execution_ref: subagent:ad88320922621f60b
-  submitted_at: 2026-09-24T14:50:13.642Z
+    reviewer_execution_ref: subagent:a1de582e49c3efa5a
+  submitted_at: 2026-09-24T16:02:48.966Z
 blockers:
   - owner: user
     reason:
@@ -217,29 +251,17 @@ blockers:
     acceptance_ids: []
     resolution_action: await-user
 verification:
-  candidate_id: f951e878-fdaa-4b6e-bb57-09ab35adcfc5
+  candidate_id: 2df071c0-906a-473f-8767-98cff59671d3
   identity_provider: skill-coordinated
-  verifier_execution_ref: skill-coordinated:verifier:195756ff-0acf-4f02-93c6-855a4a4f72be
+  verifier_execution_ref: skill-coordinated:verifier:fd558b05-e19c-41e6-a735-5022897356d2
   iteration: 1
   attempt: 1
   assurance: skill-coordinated
   verdict: pass
   checks:
-    - id: framework-tests
-      name:
-        text: 框架自测（含 Windows 模拟 7-13）
-        truncated: false
-      argv_display:
-        - text: tests/run_framework_tests.sh
-          truncated: false
-      argv_truncated: false
-      cwd_ref: .
-      status: passed
-      exit_code: 0
-      duration_ms: 8367
     - id: bash-syntax
       name:
-        text: 脚本语法检查
+        text: Script syntax check
         truncated: false
       argv_display:
         - text: -c
@@ -251,30 +273,48 @@ verification:
       cwd_ref: .
       status: passed
       exit_code: 0
-      duration_ms: 24
+      duration_ms: 970
+    - id: framework-tests-wsl
+      name:
+        text: Framework self-tests in WSL (compiler-free tests must pass; only
+          g++-dependent 1,2,6,7,10,11 may fail)
+        truncated: false
+      argv_display:
+        - text: C:/Users/LiJi900/AppData/Local/Temp/claude/d--Personal-algorithm-note/9393407b-88d0-48b0-b8cc-26e20e177429/scratchpad/wsl_check.sh
+          truncated: false
+      argv_truncated: false
+      cwd_ref: .
+      status: passed
+      exit_code: 0
+      duration_ms: 10994
   summary:
-    text: 在 Linux 上用伪造 uname、python3 存根、去掉 timeout 的 PATH、CRLF 用例、winget/MSYS2 存根和
-      autocrlf=true 克隆，逐项复现了 A1–A6、A9、A11，结果全部符合预期；A7、A8
-      按约定只做配置审查，未发现缺陷。主要剩余风险是没有真实 Windows 环境验证。
+    text: "Independent read-only verifier: the new auto user-PATH logic in setup.sh
+      is correct by inspection, new test 14 passed in WSL, the A6 hint and
+      README updates match the brief, and the test isolation keeps self-tests
+      away from the real registry and winget. The g++-dependent failures are
+      identical to the HEAD baseline and caused by the environment, so all 12
+      items pass under the agreed simulation plus config-review approach."
     truncated: false
   risks:
-    - text: 未在真实 Windows 上运行：MSYS 路径转换、timeout 能否 KILL 原生 exe、Git Bash 的 kill 能否终止原生
-        debugpy 进程，都只停留在推断，没有实测。
+    - text: "Comet acceptance IDs are positional: Comet A7 is brief A12 and Comet
+        A8-A12 are brief A7-A11. Each reason names the brief label."
       truncated: false
-    - text: A7：cpptools 在 Windows 上把 "<" 加反斜杠路径交给 gdb 重定向，对含空格的路径是否可靠尚未验证；gdb.exe 依赖
-        PATH 中有 MinGW bin。
+    - text: The g++-dependent framework tests were not re-run green this cycle because
+        no environment here has g++; this rests on baseline equivalence and
+        cycle-1 evidence.
       truncated: false
-    - text: A8：Git Bash 路径写死为 C:\Program Files\Git\bin\bash.exe，装在其他位置需要手改（README
-        已说明）。
+    - text: The real user Environment write and WM_SETTINGCHANGE broadcast were only
+        exercised by the builder against a temporary registry key; the user's
+        real machine is not yet confirmed.
       truncated: false
-    - text: CRLF 自测（自测 9）在旧脚本上也能通过（GNU diff -b 本来就忽略行尾 CR），区分力有限。
+    - text: If MinGW bin is already on the system PATH but not the user PATH, setup
+        still appends it to the user PATH, leaving a harmless duplicate.
       truncated: false
-    - text: 全新 MSYS2 上如需第二次 pacman -Syu，后续 -S 可能失败，需要用户重跑 setup。
-      truncated: false
-    - text: README 中的示例 problems/examples/a-plus-b 在仓库中不存在（本次变更之前就有的问题）。
+    - text: Real-Windows manual verification of run_tests, the auto PATH step, and VS
+        Code F5 remains with the user after archive, as agreed.
       truncated: false
   risks_truncated: false
-  completed_at: 2026-09-24T14:54:45.043Z
+  completed_at: 2026-09-24T16:07:56.117Z
 history:
   - goal_cycle: 1
     iteration: 1
@@ -287,6 +327,40 @@ history:
         按约定只做配置审查，未发现缺陷。主要剩余风险是没有真实 Windows 环境验证。
       truncated: false
     completed_at: 2026-09-24T14:54:45.043Z
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: User requests setup.sh to persistently add C:\msys64\ucrt64\bin to the
+        Windows user PATH automatically instead of only printing a manual hint;
+        this changes A6 behavior.
+      truncated: false
+    completed_at: 2026-09-24T15:37:51.348Z
+  - goal_cycle: 2
+    iteration: 1
+    attempt: 0
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Native Shape artifacts changed
+      truncated: false
+    completed_at: 2026-09-24T15:53:42.682Z
+  - goal_cycle: 3
+    iteration: 1
+    attempt: 1
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: "Independent read-only verifier: the new auto user-PATH logic in setup.sh
+        is correct by inspection, new test 14 passed in WSL, the A6 hint and
+        README updates match the brief, and the test isolation keeps self-tests
+        away from the real registry and winget. The g++-dependent failures are
+        identical to the HEAD baseline and caused by the environment, so all 12
+        items pass under the agreed simulation plus config-review approach."
+      truncated: false
+    completed_at: 2026-09-24T16:07:56.117Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null

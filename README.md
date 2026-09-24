@@ -28,9 +28,10 @@ Algorithms-node is a personal note project that notes down the common algorithms
 2. 确认系统自带 `winget` 可用（Windows 10/11 的“应用安装程序”，可从 Microsoft Store
    更新）。
 3. 运行 `scripts/setup.sh`：缺少编译器时通过 winget 安装 MSYS2，并在其中安装
-   MinGW-w64 的 g++ 与 gdb；缺少 Python 时通过 winget 安装 Python。
-4. 按脚本提示把 `C:\msys64\ucrt64\bin` 加入 Windows 用户环境变量 `PATH`，然后
-   重新打开 Git Bash 和 VS Code。
+   MinGW-w64 的 g++ 与 gdb；缺少 Python 时通过 winget 安装 Python。脚本会自动把
+   `C:\msys64\ucrt64\bin` 追加到 Windows 用户环境变量 `PATH`（已存在则跳过；失败时
+   会提示手动添加的方法）。
+4. 重新打开 Git Bash 和 VS Code，使新的 `PATH` 生效。
 
 如果仓库是在添加 `.gitattributes` 之前就已在 Windows 上克隆的，先执行一次
 `git rm -r --cached -q . && git reset --hard`，把脚本和测试用例重新检出为 LF 行尾。

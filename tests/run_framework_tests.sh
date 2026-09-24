@@ -125,6 +125,11 @@ rm -rf "$batch_dir"
 sim_dir=$(mktemp -d)
 trap 'rm -rf "$batch_dir" "$sim_dir"' EXIT
 
+# 隔离 setup.sh 的用户 PATH 写入：在真实 Windows 上跑自测时，不能读到真实的
+# MSYS2 安装或调用真实 powershell.exe 改注册表。需要验证该行为的自测单独覆盖。
+export MSYS2_ROOT="$sim_dir/no-msys2"
+export POWERSHELL_BIN=false
+
 # 伪造 uname -s 输出 Windows Git Bash 的系统名。
 win_bin="$sim_dir/win-bin"
 mkdir -p "$win_bin"
@@ -253,13 +258,19 @@ if [[ $exit_code -ne 0 ]]; then
 elif ! echo "$output" | grep -q "MINGW64" || ! echo "$output" | grep -q "已找到编译器" || ! echo "$output" | grep -q "已找到 Python 解释器"; then
     echo "结果: FAILED（未按 Windows 分支检测并报告已有工具链）"
     overall_fail=1
+elif echo "$output" | grep -q "MinGW 目录"; then
+    echo "结果: FAILED（工具链已存在且无 MinGW 目录时不应输出用户 PATH 相关信息）"
+    overall_fail=1
 else
     echo "结果: OK"
 fi
 
 echo ""
 echo "== 自测 12: Windows 模拟下缺少编译器且没有 winget 时 setup.sh 报错说明手动安装并以非 0 退出 =="
-output=$(PATH="$win_bin:$PATH" CXX=no-such-gxx "$setup_sh" 2>&1)
+# 从 PATH 中去掉含 winget 的目录，避免在真实 Windows 上跑自测时真的触发安装。
+no_winget_path=$(IFS=:; for d in $PATH; do [[ -e "$d/winget" || -e "$d/winget.exe" ]] || printf '%s:' "$d"; done)
+no_winget_path=${no_winget_path%:}
+output=$(PATH="$win_bin:$no_winget_path" CXX=no-such-gxx "$setup_sh" 2>&1)
 exit_code=$?
 echo "$output"
 if [[ $exit_code -eq 0 ]]; then
@@ -297,6 +308,56 @@ for port in 5678 5679; do
 done
 if [[ $all_ok -eq 0 ]]; then
     echo "结果: FAILED（应识别出 IPv4/IPv6 上已监听的端口并报“已被占用”）"
+    overall_fail=1
+else
+    echo "结果: OK"
+fi
+
+echo ""
+echo "== 自测 14: Windows 模拟下 setup.sh 把 MinGW bin 追加到用户 PATH，重复运行不重复添加，失败时给出手动说明 =="
+# 用记录调用的 PowerShell 存根代替真实写注册表：用文件模拟用户 PATH。
+ps_state="$sim_dir/user-path.txt"
+: > "$ps_state"
+cat > "$sim_dir/fake-powershell" <<SH
+#!/usr/bin/env bash
+if grep -qxF "\$SETUP_PATH_DIR" "$ps_state"; then
+    echo present
+else
+    echo "\$SETUP_PATH_DIR" >> "$ps_state"
+    echo added
+fi
+SH
+chmod +x "$sim_dir/fake-powershell"
+# 编译器存根：让 setup.sh 走“已有工具链”路径，自测只关注用户 PATH 行为。
+printf '#!/usr/bin/env bash\necho "g++ (fake) 13.0"\n' > "$sim_dir/fake-gxx"
+chmod +x "$sim_dir/fake-gxx"
+fake_gxx="$sim_dir/fake-gxx"
+fake_msys="$sim_dir/msys64"
+all_ok=1
+# 目录不存在时不调用 PowerShell。
+PATH="$win_bin:$PATH" CXX="$fake_gxx" MSYS2_ROOT="$fake_msys" POWERSHELL_BIN="$sim_dir/fake-powershell" "$setup_sh" >/dev/null 2>&1
+[[ -s "$ps_state" ]] && { echo "目录不存在时仍写入了 PATH"; all_ok=0; }
+mkdir -p "$fake_msys/ucrt64/bin"
+output=$(PATH="$win_bin:$PATH" CXX="$fake_gxx" MSYS2_ROOT="$fake_msys" POWERSHELL_BIN="$sim_dir/fake-powershell" "$setup_sh" 2>&1)
+exit_code=$?
+echo "[首次] $output"
+if [[ $exit_code -ne 0 ]] || ! echo "$output" | grep -q "已把 MinGW 目录加入 Windows 用户 PATH"; then
+    all_ok=0
+fi
+output=$(PATH="$win_bin:$PATH" CXX="$fake_gxx" MSYS2_ROOT="$fake_msys" POWERSHELL_BIN="$sim_dir/fake-powershell" "$setup_sh" 2>&1)
+exit_code=$?
+echo "[再次] $output"
+if [[ $exit_code -ne 0 ]] || echo "$output" | grep -q "MinGW 目录" || [[ $(wc -l < "$ps_state") -ne 1 ]]; then
+    all_ok=0
+fi
+output=$(PATH="$win_bin:$PATH" CXX="$fake_gxx" MSYS2_ROOT="$fake_msys" POWERSHELL_BIN=false "$setup_sh" 2>&1)
+exit_code=$?
+echo "[失败] $output"
+if [[ $exit_code -ne 0 ]] || ! echo "$output" | grep -q "请手动添加"; then
+    all_ok=0
+fi
+if [[ $all_ok -eq 0 ]]; then
+    echo "结果: FAILED（用户 PATH 自动添加、幂等或失败回退行为不符合预期）"
     overall_fail=1
 else
     echo "结果: OK"

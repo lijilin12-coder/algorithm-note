@@ -23,6 +23,8 @@ resolve_python_bin
 # Windows 下 winget 安装的默认位置（Git Bash 路径写法）。
 MSYS2_ROOT="${MSYS2_ROOT:-/c/msys64}"
 MINGW_BIN="$MSYS2_ROOT/ucrt64/bin"
+# 写 Windows 用户 PATH 所用的 PowerShell；自测时替换为存根，避免改动真实环境。
+POWERSHELL_BIN="${POWERSHELL_BIN:-powershell.exe}"
 
 check_compiler() {
     if command -v "$CXX" >/dev/null 2>&1; then
@@ -92,9 +94,64 @@ install_windows_toolchain() {
     fi
     refresh_windows_path
     echo ""
-    echo "提示: 请把 MinGW 目录加入 Windows 用户环境变量 PATH，然后重新打开 Git Bash / VS Code："
-    echo "  $(cygpath -w "$MINGW_BIN" 2>/dev/null || echo "$MINGW_BIN")"
-    echo "  （Python 安装程序会自动把 python 加入 PATH，同样需要重新打开终端后生效。）"
+    echo "提示: 新安装的 g++ / Python 需要重新打开 Git Bash / VS Code 后才能在新终端中使用。"
+}
+
+# 读写用户 PATH 的 PowerShell 脚本（通过环境变量传参，脚本内只用双引号，便于
+# 放进 bash 单引号字符串）。直接读注册表原始值（不展开 %VAR%），按原类型
+# REG_EXPAND_SZ 写回，避免 [Environment]::SetEnvironmentVariable 把已有的
+# %USERPROFILE% 等引用展开固化。写入后借一个临时用户变量的设置/删除广播
+# WM_SETTINGCHANGE，让之后新开的终端与 VS Code 读到新 PATH。
+# 最后一行输出 added / present 供 bash 判断结果。
+# SETUP_USER_ENV_KEY 仅供自测指向临时注册表键，正常使用时为 HKCU:\Environment。
+# shellcheck disable=SC2016
+WINDOWS_ADD_USER_PATH_PS='
+$ErrorActionPreference = "Stop"
+$dir = $env:SETUP_PATH_DIR.TrimEnd("\")
+$key = if ($env:SETUP_USER_ENV_KEY) { $env:SETUP_USER_ENV_KEY } else { "HKCU:\Environment" }
+if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
+$raw = (Get-Item -Path $key).GetValue("Path", "", [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+foreach ($entry in ($raw -split ";")) {
+    $e = $entry.Trim()
+    if ($e -eq "") { continue }
+    if ($e.TrimEnd("\") -ieq $dir -or [Environment]::ExpandEnvironmentVariables($e).TrimEnd("\") -ieq $dir) {
+        "present"
+        exit 0
+    }
+}
+$new = if ($raw.Trim(";").Trim() -eq "") { $dir } else { $raw.TrimEnd(";") + ";" + $dir }
+New-ItemProperty -Path $key -Name "Path" -Value $new -PropertyType ExpandString -Force | Out-Null
+if (-not $env:SETUP_USER_ENV_KEY) {
+    [Environment]::SetEnvironmentVariable("ALGORITHM_NOTE_SETUP_TMP", "1", "User")
+    [Environment]::SetEnvironmentVariable("ALGORITHM_NOTE_SETUP_TMP", $null, "User")
+}
+"added"
+'
+
+# 把 MinGW bin 目录持久追加到 Windows 用户 PATH 末尾（不改系统 PATH、不需要管理员
+# 权限）；已存在时静默跳过，目录不存在时什么都不做。失败只给出手动说明，不影响
+# 最终以 g++ / Python 是否可用决定的退出码。
+ensure_windows_user_path() {
+    [[ -d "$MINGW_BIN" ]] || return 0
+    local win_dir result
+    win_dir=$(cygpath -w "$MINGW_BIN" 2>/dev/null || echo "$MINGW_BIN")
+    result=$(SETUP_PATH_DIR="$win_dir" "$POWERSHELL_BIN" -NoProfile -NonInteractive -ExecutionPolicy Bypass \
+        -Command "$WINDOWS_ADD_USER_PATH_PS" 2>/dev/null | tr -d '\r' | sed '/^[[:space:]]*$/d' | tail -n 1)
+    case "$result" in
+        added)
+            echo ""
+            echo "已把 MinGW 目录加入 Windows 用户 PATH: $win_dir"
+            echo "  请重新打开 Git Bash / VS Code 后生效。"
+            ;;
+        present)
+            ;;
+        *)
+            echo "" >&2
+            echo "警告: 自动把 MinGW 目录加入 Windows 用户 PATH 失败。请手动添加：" >&2
+            echo "  “设置” → 搜索“编辑账户的环境变量” → 用户变量 Path → 新建 → $win_dir" >&2
+            echo "  然后重新打开 Git Bash / VS Code。" >&2
+            ;;
+    esac
 }
 
 os_name=$(uname -s)
@@ -142,6 +199,7 @@ case "$os_name" in
         if ! check_compiler || ! check_python; then
             install_windows_toolchain
         fi
+        ensure_windows_user_path
         ;;
     *)
         echo "错误: 暂不支持的操作系统: $os_name" >&2
