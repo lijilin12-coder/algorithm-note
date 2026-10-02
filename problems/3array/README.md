@@ -39,3 +39,75 @@ $$
 - \text{presum}[x2+1][y1]
 + \text{presum}[x1][y1]
 $$
+
+## 2. 二分模板（左闭右开写法）
+
+### 2.1 查找一个数
+```cpp
+int binary_search(int[] nums, int target) {
+    // right 初始化为 nums.length
+    // 左闭右开的搜索区间
+    int left = 0, right = nums.length;
+
+    // 用 < 而不是 <=，因为 left == right 时搜索区间为空
+    while (left < right) {
+        int mid = left + (right - left) / 2;
+        if (nums[mid] == target) {
+            return mid;
+        } else if (nums[mid] < target) {
+            // 下一轮搜索区间为 [mid+1, right)
+            left = mid + 1;
+        } else if (nums[mid] > target) {
+            // 下一轮搜索区间为 [left, mid)
+            right = mid;
+        }
+    }
+    return -1;
+}
+```
+
+### 2.2 查找左边界
+```cpp
+// 搜索左侧边界
+int left_bound(vector<int>& nums, int target) {
+    if (nums.size() == 0) return -1;
+    int left = 0, right = nums.size();
+    
+    while (left < right) {
+        int mid = left + (right - left) / 2;
+        if (nums[mid] == target) {
+            // 当找到 target 时，收缩右侧边界
+            right = mid;
+        } else if (nums[mid] < target) {
+            left = mid + 1;
+        } else if (nums[mid] > target) {
+            right = mid;
+        }
+    }
+    return left;
+}
+```
+
+### 2.3 查找右边界
+```cpp
+// 搜索右侧边界
+int right_bound(vector<int>& nums, int target) {
+    if (nums.size() == 0) return -1;
+    int left = 0, right = nums.size();
+
+    while (left < right) {
+        int mid = left + (right - left) / 2;
+        if (nums[mid] == target) {
+            // 当找到 target 时，收缩左侧边界
+            left = mid + 1;
+        } else if (nums[mid] < target) {
+            left = mid + 1;
+        } else if (nums[mid] > target) {
+            right = mid;
+        }
+    }
+    return left - 1;
+}
+
+```
+
